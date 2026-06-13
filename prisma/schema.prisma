@@ -47,13 +47,16 @@ model RefreshToken {
 
 /// Master commodity record used across farms, batches, and supply chains.
 model Commodity {
-  id        String        @id @default(cuid())
-  name      String
-  code      String        @unique
-  imageUrl  String        @default("")
-  unit      CommodityUnit
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id            String          @id @default(cuid())
+  name          String
+  code          String          @unique
+  imageUrl      String          @default("")
+  unit          CommodityUnit
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  farmLinks     FarmCommodity[]
+  batches       Batch[]
+  supplyChains  SupplyChain[]
 
   @@index([name])
 }
@@ -87,4 +90,112 @@ model Actor {
 
   @@index([name])
   @@index([status])
+}
+
+enum FarmStatus {
+  DRAFT
+  MAPPED
+  READY_FOR_ASSESSMENT
+  UNDER_REVIEW
+  ASSESSED
+  APPROVED
+  REJECTED
+}
+
+/// Farm registered for traceability and deforestation assessment.
+model Farm {
+  id                         String          @id @default(cuid())
+  name                       String
+  code                       String          @unique
+  status                     FarmStatus      @default(DRAFT)
+  ownerFirstName             String          @default("")
+  ownerLastName              String          @default("")
+  ownerPhone                 String          @default("")
+  ownerEmail                 String          @default("")
+  country                    String          @default("")
+  region                     String          @default("")
+  city                       String          @default("")
+  latitude                   Float?
+  longitude                  Float?
+  annualProductionEstimateKg Float?
+  areaHectares               Float?
+  declarationAccepted        Boolean         @default(false)
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+  commodities                FarmCommodity[]
+  batches                    Batch[]
+
+  @@index([name])
+}
+
+/// Many-to-many link between farms and commodities they grow.
+model FarmCommodity {
+  farmId      String
+  commodityId String
+  farm        Farm      @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  commodity   Commodity @relation(fields: [commodityId], references: [id], onDelete: Restrict)
+
+  @@id([farmId, commodityId])
+}
+
+enum SupplyChainStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Supply chain journey used for batch allocation (full CRUD module deferred).
+model SupplyChain {
+  id          String            @id @default(cuid())
+  name        String
+  code        String            @unique
+  description String?
+  status      SupplyChainStatus @default(ACTIVE)
+  commodityId String?
+  commodity   Commodity?        @relation(fields: [commodityId], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  allocations BatchAllocation[]
+
+  @@index([status])
+}
+
+enum BatchStatus {
+  CREATED
+  PARTIALLY_ALLOCATED
+  FULLY_ALLOCATED
+}
+
+/// Harvest batch recorded against a farm and commodity.
+model Batch {
+  id           String            @id @default(cuid())
+  batchNumber  String            @unique
+  farmId       String
+  commodityId  String
+  harvestDate  String
+  quantity     Float
+  unit         CommodityUnit
+  status       BatchStatus       @default(CREATED)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Restrict)
+  commodity    Commodity         @relation(fields: [commodityId], references: [id], onDelete: Restrict)
+  allocations  BatchAllocation[]
+
+  @@index([farmId])
+}
+
+/// Quantity of a batch allocated to a supply chain.
+model BatchAllocation {
+  id            String      @id @default(cuid())
+  batchId       String
+  supplyChainId String
+  quantity      Float
+  allocatedAt   DateTime
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  batch         Batch       @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  supplyChain   SupplyChain @relation(fields: [supplyChainId], references: [id], onDelete: Restrict)
+
+  @@index([batchId])
+  @@index([supplyChainId])
 }

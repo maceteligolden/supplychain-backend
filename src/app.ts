@@ -11,7 +11,11 @@ import swaggerUi from 'swagger-ui-express';
 
 import { createActorRoutes } from '@/modules/actors';
 import { createAuthRoutes } from '@/modules/auth';
+import { createBatchAllocationRoutes } from '@/modules/batch-allocations';
+import { createBatchRoutes } from '@/modules/batches';
 import { createCommodityRoutes } from '@/modules/commodities';
+import { createFarmRoutes } from '@/modules/farms';
+import { createSupplyChainRoutes } from '@/modules/supply-chains';
 import { createHealthRoutes } from '@/modules/health';
 import {
   ENV,
@@ -67,6 +71,10 @@ export const createApp = (): Express => {
   app.use(`${apiBasePath}/auth`, createAuthRoutes());
   app.use(`${apiBasePath}/commodities`, createCommodityRoutes());
   app.use(`${apiBasePath}/actors`, createActorRoutes());
+  app.use(`${apiBasePath}/farms`, createFarmRoutes());
+  app.use(`${apiBasePath}/batches`, createBatchRoutes());
+  app.use(`${apiBasePath}/batch-allocations`, createBatchAllocationRoutes());
+  app.use(`${apiBasePath}/supply-chains`, createSupplyChainRoutes());
 
   app.use(notFoundHandlerMiddleware);
   app.use(errorHandlerMiddleware);

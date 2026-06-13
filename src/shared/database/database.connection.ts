@@ -1,7 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
 import { seedActorsIfEmpty } from '@/modules/actors';
+import { seedBatchAllocationsIfEmpty } from '@/modules/batch-allocations';
+import { seedBatchesIfEmpty } from '@/modules/batches';
 import { seedCommoditiesIfEmpty } from '@/modules/commodities';
+import { seedFarmsIfEmpty } from '@/modules/farms';
+import { seedSupplyChainsIfEmpty } from '@/modules/supply-chains';
 import { DATABASE_CONNECTION_TIMEOUT_MS, ENV, isDevelopment } from '@/shared/constants';
 import { createChildLogger } from '@/shared/utils';
 
@@ -55,6 +59,10 @@ export const bootstrapServer = async (listen: () => void): Promise<void> => {
     await connectDatabases();
     await seedCommoditiesIfEmpty();
     await seedActorsIfEmpty();
+    await seedSupplyChainsIfEmpty();
+    await seedFarmsIfEmpty();
+    await seedBatchesIfEmpty();
+    await seedBatchAllocationsIfEmpty();
   } catch (error) {
     if (isDevelopment()) {
       databaseLogger.warn(
