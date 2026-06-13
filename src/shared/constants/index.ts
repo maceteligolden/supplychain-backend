@@ -25,3 +25,10 @@ export {
   COMMODITY_CODE_PATTERN,
   type CommodityUnit,
 } from './commodity.constants';
+export {
+  ACTOR_TYPES,
+  ACTOR_STATUSES,
+  ACTOR_CODE_PATTERN,
+  type ActorType,
+  type ActorStatus,
+} from './actor.constants';

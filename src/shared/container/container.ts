@@ -7,6 +7,7 @@ import {
   RefreshTokenRepository,
   UserRepository,
 } from '@/modules/auth';
+import { ActorController, ActorRepository, ActorService } from '@/modules/actors';
 import {
   CommodityController,
   CommodityRepository,
@@ -31,6 +32,10 @@ export const setupDependencyContainer = (): void => {
   container.register(CommodityRepository, { useClass: CommodityRepository });
   container.register(CommodityService, { useClass: CommodityService });
   container.register(CommodityController, { useClass: CommodityController });
+
+  container.register(ActorRepository, { useClass: ActorRepository });
+  container.register(ActorService, { useClass: ActorService });
+  container.register(ActorController, { useClass: ActorController });
 };
 
 export { container };

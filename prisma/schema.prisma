@@ -57,3 +57,34 @@ model Commodity {
 
   @@index([name])
 }
+
+enum ActorType {
+  COLLECTION_CENTRE
+  PROCESSOR
+  WAREHOUSE
+  EXPORTER
+  CARRIER
+}
+
+enum ActorStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Supply chain participant (collection centre, processor, exporter, etc.).
+model Actor {
+  id             String      @id @default(cuid())
+  name           String
+  code           String      @unique
+  type           ActorType
+  addressLine1   String?
+  addressCity    String
+  addressRegion  String
+  addressCountry String
+  status         ActorStatus @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([name])
+  @@index([status])
+}

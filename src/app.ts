@@ -9,6 +9,7 @@ import express, { Express } from 'express';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 
+import { createActorRoutes } from '@/modules/actors';
 import { createAuthRoutes } from '@/modules/auth';
 import { createCommodityRoutes } from '@/modules/commodities';
 import { createHealthRoutes } from '@/modules/health';
@@ -65,6 +66,7 @@ export const createApp = (): Express => {
   app.use(`${apiBasePath}/health`, createHealthRoutes());
   app.use(`${apiBasePath}/auth`, createAuthRoutes());
   app.use(`${apiBasePath}/commodities`, createCommodityRoutes());
+  app.use(`${apiBasePath}/actors`, createActorRoutes());
 
   app.use(notFoundHandlerMiddleware);
   app.use(errorHandlerMiddleware);

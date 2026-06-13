@@ -17,24 +17,26 @@ import type { ICommodityOutput, IGetCommoditiesOutput } from '@/modules/commodit
 class InMemoryCommodityRepository extends CommodityRepository {
   private store = new Map<string, ICommodityRecord>();
 
-  override findAll(): ICommodityRecord[] {
-    return [...this.store.values()].sort((left, right) =>
-      left.name.localeCompare(right.name),
+  override findAll(): Promise<ICommodityRecord[]> {
+    return Promise.resolve(
+      [...this.store.values()].sort((left, right) =>
+        left.name.localeCompare(right.name),
+      ),
     );
   }
 
   override countAll(): Promise<number> {
-    return this.store.size;
+    return Promise.resolve(this.store.size);
   }
 
   override findById(id: string): Promise<ICommodityRecord | null> {
-    return this.store.get(id) ?? null;
+    return Promise.resolve(this.store.get(id) ?? null);
   }
 
   override findByCode(code: string): Promise<ICommodityRecord | null> {
-    return (
+    return Promise.resolve(
       [...this.store.values()].find((record) => record.code === code.toUpperCase()) ??
-      null
+        null,
     );
   }
 
@@ -55,7 +57,7 @@ class InMemoryCommodityRepository extends CommodityRepository {
       updatedAt: now,
     };
     this.store.set(record.id, record);
-    return record;
+    return Promise.resolve(record);
   }
 
   override updateById(
@@ -69,7 +71,7 @@ class InMemoryCommodityRepository extends CommodityRepository {
   ): Promise<ICommodityRecord | null> {
     const existing = this.store.get(id);
     if (!existing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const updated: ICommodityRecord = {
@@ -81,11 +83,11 @@ class InMemoryCommodityRepository extends CommodityRepository {
       updatedAt: new Date(),
     };
     this.store.set(id, updated);
-    return updated;
+    return Promise.resolve(updated);
   }
 
   override deleteById(id: string): Promise<boolean> {
-    return this.store.delete(id);
+    return Promise.resolve(this.store.delete(id));
   }
 
   clear(): void {

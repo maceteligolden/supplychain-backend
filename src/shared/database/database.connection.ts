@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
+import { seedActorsIfEmpty } from '@/modules/actors';
 import { seedCommoditiesIfEmpty } from '@/modules/commodities';
 import { DATABASE_CONNECTION_TIMEOUT_MS, ENV, isDevelopment } from '@/shared/constants';
 import { createChildLogger } from '@/shared/utils';
@@ -53,6 +54,7 @@ export const bootstrapServer = async (listen: () => void): Promise<void> => {
   try {
     await connectDatabases();
     await seedCommoditiesIfEmpty();
+    await seedActorsIfEmpty();
   } catch (error) {
     if (isDevelopment()) {
       databaseLogger.warn(
