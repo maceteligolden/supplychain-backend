@@ -9,16 +9,51 @@ datasource db {
 
 /// Platform user stored in PostgreSQL for auth and audit trails.
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      UserRole @default(SUPER_ADMIN)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          UserRole       @default(SUPER_ADMIN)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
 }
 
 enum UserRole {
   SUPER_ADMIN
+}
+
+enum CommodityUnit {
+  KG
+  TON
+  LITRE
+  BAG
+  UNIT
+}
+
+/// Hashed refresh token persisted for rotation and revocation.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Master commodity record used across farms, batches, and supply chains.
+model Commodity {
+  id        String        @id @default(cuid())
+  name      String
+  code      String        @unique
+  imageUrl  String        @default("")
+  unit      CommodityUnit
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([name])
 }

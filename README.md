@@ -24,7 +24,7 @@ yarn docker:up
 yarn docker:build   # build API image
 ```
 
-Services: API (`5009`), MongoDB (`27017`), PostgreSQL (`5432`).
+Services: API (`5009`), PostgreSQL (`5432`).
 
 ## Scripts
 
@@ -39,13 +39,15 @@ Services: API (`5009`), MongoDB (`27017`), PostgreSQL (`5432`).
 | `yarn test:run` | Vitest unit tests |
 | `yarn test:integration` | Supertest integration tests |
 | `yarn prisma:migrate` | Run Prisma migrations |
-| `yarn docker:up` | Start MongoDB + PostgreSQL + API |
+| `yarn seed` | Seed default superadmin |
+| `yarn setup` | Migrate + seed (Docker/production) |
+| `yarn docker:up` | Start PostgreSQL + API |
 
 ## Architecture
 
 - **Modular features** under `src/modules/<feature>/` (controller, service, routes, validation, index).
 - **Shared layer** under `src/shared/` (constants, middleware, database, DI, utils).
-- **PostgreSQL (Prisma)** for relational/auth data; **MongoDB (Mongoose)** for operational documents.
+- **PostgreSQL (Prisma)** for all persisted data (auth, commodities, refresh tokens).
 - **tsyringe** dependency injection; **Zod** validation at routes; **Pino** logging.
 - Controllers orchestrate services only; business logic lives in services.
 

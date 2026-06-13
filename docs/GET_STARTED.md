@@ -6,7 +6,7 @@ Developer setup for the Supply Chain Traceability API.
 
 - Node.js 22+
 - Yarn (Corepack: `corepack enable`)
-- Docker (optional, for MongoDB + PostgreSQL)
+- Docker (optional, for PostgreSQL)
 
 ## 1. Install
 
@@ -17,17 +17,30 @@ yarn install
 yarn prisma:generate
 ```
 
-## 2. Start databases
+## 2. Start databases and migrate
 
 ### Option A — Docker (recommended)
 
 ```bash
 yarn docker:up
+yarn prisma:migrate
+yarn seed
 ```
 
 ### Option B — Local services
 
-Ensure MongoDB and PostgreSQL are running and match `.env`.
+Ensure PostgreSQL is running and matches `.env`, then:
+
+```bash
+yarn prisma:migrate
+yarn seed
+```
+
+The seed creates the default Super Admin test account:
+
+| Email              | Password         |
+| ------------------ | ---------------- |
+| `john@example.com` | `SuperAdmin123!` |
 
 ## 3. Run the API
 
@@ -80,13 +93,16 @@ See `.cursor/rules/backend-feature-workflow.mdc` for the full workflow.
 
 ## 7. Environment variables
 
-| Variable       | Description                                 |
-| -------------- | ------------------------------------------- |
-| `PORT`         | HTTP port (default `5009`)                  |
-| `MONGODB_URI`  | MongoDB connection string                   |
-| `DATABASE_URL` | PostgreSQL connection string for Prisma     |
-| `CORS_ORIGIN`  | Allowed frontend origin(s), comma-separated |
-| `JWT_SECRET`   | Auth signing secret                         |
-| `LOG_LEVEL`    | Pino log level                              |
+| Variable               | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `PORT`                 | HTTP port (default `5009`)                  |
+| `DATABASE_URL`         | PostgreSQL connection string for Prisma     |
+| `UPLOAD_DIR`           | Local path for commodity image uploads      |
+| `CORS_ORIGIN`          | Allowed frontend origin(s), comma-separated |
+| `JWT_SECRET`           | Access JWT signing secret                   |
+| `JWT_REFRESH_SECRET`   | Refresh token signing secret                |
+| `SUPER_ADMIN_EMAIL`    | Seed superadmin email                       |
+| `SUPER_ADMIN_PASSWORD` | Seed superadmin password                    |
+| `LOG_LEVEL`            | Pino log level                              |
 
 Only `src/shared/constants/env.ts` may read `process.env`.

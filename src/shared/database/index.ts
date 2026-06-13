@@ -1,6 +1,5 @@
 export {
   prismaClient,
-  connectMongoDatabase,
   connectPostgresDatabase,
   connectDatabases,
   disconnectDatabases,

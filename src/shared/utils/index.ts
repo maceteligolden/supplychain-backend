@@ -13,3 +13,14 @@ export type {
   IPaginationMetadataOutput,
   IPaginatedResultOutput,
 } from './pagination.util';
+export { hashPassword, comparePassword } from './password.util';
+export {
+  signAccessToken,
+  verifyAccessToken,
+  generateOpaqueRefreshToken,
+  hashRefreshToken,
+  getRefreshTokenExpiryDate,
+  getAccessTokenMaxAgeSeconds,
+  getRefreshTokenMaxAgeSeconds,
+} from './jwt.util';
+export type { IAccessTokenPayload } from './jwt.util';

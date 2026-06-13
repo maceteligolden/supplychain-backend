@@ -8,21 +8,13 @@ services:
     env_file:
       - .env
     environment:
-      MONGODB_URI: mongodb://mongo:27017/supplychain
       DATABASE_URL: postgresql://supplychain:supplychain@postgres:5432/supplychain?schema=public
+      UPLOAD_DIR: /app/uploads
     depends_on:
-      mongo:
-        condition: service_started
       postgres:
         condition: service_healthy
-    restart: unless-stopped
-
-  mongo:
-    image: mongo:7
-    ports:
-      - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - commodity_uploads:/app/uploads
     restart: unless-stopped
 
   postgres:
@@ -43,5 +35,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  mongo_data:
   postgres_data:
+  commodity_uploads:

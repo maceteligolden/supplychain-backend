@@ -1,12 +1,16 @@
 import 'reflect-metadata';
 import 'dotenv/config';
 
+import path from 'path';
+
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import express, { Express } from 'express';
 import helmet from 'helmet';
-import mongoSanitize from 'express-mongo-sanitize';
 import swaggerUi from 'swagger-ui-express';
 
+import { createAuthRoutes } from '@/modules/auth';
+import { createCommodityRoutes } from '@/modules/commodities';
 import { createHealthRoutes } from '@/modules/health';
 import {
   ENV,
@@ -16,6 +20,7 @@ import {
   setupDependencyContainer,
   swaggerSpec,
 } from '@/shared';
+import { ensureCommodityUploadDirectory } from '@/modules/commodities/commodity.storage';
 
 setupDependencyContainer();
 
@@ -31,8 +36,6 @@ export const createApp = (): Express => {
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
-  app.use(mongoSanitize());
-
   const allowedOrigins = ENV.CORS_ORIGIN.split(',').map((origin) => origin.trim());
 
   app.use(
@@ -49,13 +52,19 @@ export const createApp = (): Express => {
   );
 
   app.use(express.json());
+  app.use(cookieParser());
   app.use(requestLoggerMiddleware);
+
+  ensureCommodityUploadDirectory();
+  app.use('/uploads', express.static(path.resolve(ENV.UPLOAD_DIR)));
 
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.use('/health', createHealthRoutes());
 
   const apiBasePath = `/api/${ENV.API_VERSION}`;
   app.use(`${apiBasePath}/health`, createHealthRoutes());
+  app.use(`${apiBasePath}/auth`, createAuthRoutes());
+  app.use(`${apiBasePath}/commodities`, createCommodityRoutes());
 
   app.use(notFoundHandlerMiddleware);
   app.use(errorHandlerMiddleware);

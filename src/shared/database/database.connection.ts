@@ -1,6 +1,6 @@
-import mongoose, { ConnectionStates } from 'mongoose';
 import { PrismaClient } from '@prisma/client';
 
+import { seedCommoditiesIfEmpty } from '@/modules/commodities';
 import { DATABASE_CONNECTION_TIMEOUT_MS, ENV, isDevelopment } from '@/shared/constants';
 import { createChildLogger } from '@/shared/utils';
 
@@ -14,22 +14,6 @@ export const prismaClient = new PrismaClient({
     },
   },
 });
-
-/**
- * Connects to MongoDB with a timeout guard.
- */
-export const connectMongoDatabase = async (): Promise<void> => {
-  await Promise.race([
-    mongoose.connect(ENV.MONGODB_URI),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('MongoDB connection timeout'));
-      }, DATABASE_CONNECTION_TIMEOUT_MS);
-    }),
-  ]);
-
-  databaseLogger.info('MongoDB connected');
-};
 
 /**
  * Connects to PostgreSQL via Prisma.
@@ -48,22 +32,17 @@ export const connectPostgresDatabase = async (): Promise<void> => {
 };
 
 /**
- * Connects all configured databases.
+ * Connects the configured database.
  */
 export const connectDatabases = async (): Promise<void> => {
-  await Promise.all([connectMongoDatabase(), connectPostgresDatabase()]);
+  await connectPostgresDatabase();
 };
 
 /**
  * Gracefully closes database connections on shutdown.
  */
 export const disconnectDatabases = async (): Promise<void> => {
-  await Promise.all([
-    mongoose.connection.readyState === ConnectionStates.connected
-      ? mongoose.disconnect()
-      : Promise.resolve(),
-    prismaClient.$disconnect(),
-  ]);
+  await prismaClient.$disconnect();
   databaseLogger.info('Database connections closed');
 };
 
@@ -73,6 +52,7 @@ export const disconnectDatabases = async (): Promise<void> => {
 export const bootstrapServer = async (listen: () => void): Promise<void> => {
   try {
     await connectDatabases();
+    await seedCommoditiesIfEmpty();
   } catch (error) {
     if (isDevelopment()) {
       databaseLogger.warn(
