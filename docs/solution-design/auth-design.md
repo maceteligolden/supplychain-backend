@@ -15,10 +15,10 @@ Authentication for the Traceability Platform POC. The frontend expects session-b
 
 ## Use cases
 
-| ID | Actor | Use case |
-| --- | --- | --- |
-| UC-A1 | Super Admin | Log in with email/password |
-| UC-A2 | Super Admin | View current profile |
+| ID    | Actor       | Use case                       |
+| ----- | ----------- | ------------------------------ |
+| UC-A1 | Super Admin | Log in with email/password     |
+| UC-A2 | Super Admin | View current profile           |
 | UC-A3 | Super Admin | Log out and invalidate session |
 
 ## Flows
@@ -40,22 +40,22 @@ Authentication for the Traceability Platform POC. The frontend expects session-b
 
 ### PostgreSQL — `User` (Prisma)
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `id` | string | Primary key |
-| `email` | string | Unique login identifier |
-| `password` | string | Bcrypt hash |
-| `firstName` | string | Display name |
-| `lastName` | string | Display name |
-| `role` | enum | `SUPER_ADMIN` in POC |
+| Field       | Type   | Description             |
+| ----------- | ------ | ----------------------- |
+| `id`        | string | Primary key             |
+| `email`     | string | Unique login identifier |
+| `password`  | string | Bcrypt hash             |
+| `firstName` | string | Display name            |
+| `lastName`  | string | Display name            |
+| `role`      | enum   | `SUPER_ADMIN` in POC    |
 
 ## Endpoints (planned)
 
-| Method | Path | Access | Body / query |
-| --- | --- | --- | --- |
-| POST | `/api/v1/auth/login` | Public | `{ email, password }` |
-| GET | `/api/v1/auth/me` | Authenticated | — |
-| POST | `/api/v1/auth/logout` | Authenticated | — |
+| Method | Path                  | Access        | Body / query          |
+| ------ | --------------------- | ------------- | --------------------- |
+| POST   | `/api/v1/auth/login`  | Public        | `{ email, password }` |
+| GET    | `/api/v1/auth/me`     | Authenticated | —                     |
+| POST   | `/api/v1/auth/logout` | Authenticated | —                     |
 
 ## Future updates (deferred)
 

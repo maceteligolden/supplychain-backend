@@ -10,9 +10,7 @@ import { HealthService } from './health.service';
  */
 @injectable()
 export class HealthController {
-  constructor(
-    @inject(HealthService) private readonly healthService: HealthService,
-  ) {}
+  constructor(@inject(HealthService) private readonly healthService: HealthService) {}
 
   /**
    * Handles GET /health and returns service readiness metadata.

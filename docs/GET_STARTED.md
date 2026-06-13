@@ -80,13 +80,13 @@ See `.cursor/rules/backend-feature-workflow.mdc` for the full workflow.
 
 ## 7. Environment variables
 
-| Variable | Description |
-| --- | --- |
-| `PORT` | HTTP port (default `5009`) |
-| `MONGODB_URI` | MongoDB connection string |
-| `DATABASE_URL` | PostgreSQL connection string for Prisma |
-| `CORS_ORIGIN` | Allowed frontend origin(s), comma-separated |
-| `JWT_SECRET` | Auth signing secret |
-| `LOG_LEVEL` | Pino log level |
+| Variable       | Description                                 |
+| -------------- | ------------------------------------------- |
+| `PORT`         | HTTP port (default `5009`)                  |
+| `MONGODB_URI`  | MongoDB connection string                   |
+| `DATABASE_URL` | PostgreSQL connection string for Prisma     |
+| `CORS_ORIGIN`  | Allowed frontend origin(s), comma-separated |
+| `JWT_SECRET`   | Auth signing secret                         |
+| `LOG_LEVEL`    | Pino log level                              |
 
 Only `src/shared/constants/env.ts` may read `process.env`.
