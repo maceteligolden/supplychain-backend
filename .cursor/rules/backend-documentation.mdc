@@ -1,0 +1,33 @@
+---
+description: JSDoc requirements for functions, classes, and type fields
+globs: supplychain-backend/**/*.ts
+alwaysApply: false
+---
+
+# Documentation standards
+
+## Functions
+
+Every function (especially exported and class methods) must have JSDoc describing **what it does**, parameters, and return value when non-obvious.
+
+## Classes
+
+Every class must have JSDoc describing **its responsibility** in the system (e.g. "Orchestrates supply chain lifecycle business rules").
+
+## Interfaces / types / schemas
+
+Document **each key** with a brief description of meaning and constraints.
+
+```typescript
+/** Supply chain aggregate root for traceability journeys. */
+export interface ISupplyChain {
+  /** Human-readable chain name shown in the UI. */
+  name: string;
+  /** Unique business code (uppercase slug). */
+  code: string;
+}
+```
+
+## Zod schemas
+
+Add `.describe()` on fields or a block comment above the schema explaining the shape.

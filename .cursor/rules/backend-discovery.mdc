@@ -1,0 +1,16 @@
+---
+description: Ask clarifying questions during research and discovery
+alwaysApply: true
+---
+
+# Discovery — ask before building
+
+Before writing code or tests:
+
+1. Read frontend pages, services, and existing docs.
+2. List assumptions and gaps (auth, pagination, which DB, id format, etc.).
+3. **Ask the user targeted questions** to resolve confusion — use the AskQuestion tool when choices exist.
+4. Summarize agreed endpoints and models.
+5. Only then proceed to tests and implementation.
+
+Do not guess on access control, field validation rules, or cross-actor boundaries.

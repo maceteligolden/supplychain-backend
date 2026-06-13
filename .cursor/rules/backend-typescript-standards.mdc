@@ -1,0 +1,38 @@
+---
+description: TypeScript standards — strict typing, naming, no any
+globs: supplychain-backend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript standards
+
+## Strict typing
+
+- **Never use `any`**. Use `unknown` and narrow, or define explicit types.
+- Enable and respect `strict`, `noImplicitAny`, `noUncheckedIndexedAccess`.
+- All exported functions must declare explicit return types.
+
+## Naming
+
+| Kind | Convention | Example |
+| --- | --- | --- |
+| Variables | camelCase, descriptive | `supplyChainId` |
+| Function args / input types | `*Input` suffix | `CreateFarmInput` |
+| Return types | `*Output` suffix | `CreateFarmOutput` |
+| Interfaces | `I` prefix | `IFarm` |
+| Classes | role suffix | `FarmService`, `FarmController` |
+| Constants | SCREAMING_SNAKE in shared files | `DEFAULT_PAGE_LIMIT` |
+
+## ESLint
+
+`@typescript-eslint/no-explicit-any` is **error**. Fix before committing.
+
+## Examples
+
+```typescript
+// ❌ BAD
+function getFarm(id: any): any { ... }
+
+// ✅ GOOD
+function getFarmById(farmIdInput: string): IFarmOutput { ... }
+```

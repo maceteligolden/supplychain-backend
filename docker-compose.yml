@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-5009}:5009"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/supplychain
+      DATABASE_URL: postgresql://supplychain:supplychain@postgres:5432/supplychain?schema=public
+    depends_on:
+      mongo:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: supplychain
+      POSTGRES_PASSWORD: supplychain
+      POSTGRES_DB: supplychain
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supplychain -d supplychain"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  postgres_data:

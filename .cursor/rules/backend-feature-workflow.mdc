@@ -1,0 +1,27 @@
+---
+description: Feature delivery workflow — frontend-first discovery to implementation
+alwaysApply: true
+---
+
+# Feature workflow
+
+When given a backend task, follow these steps **in order**:
+
+1. **Check the frontend** (`../supplychain/src/app`, `../supplychain/src/components`) for related pages.
+2. **Collect all data fields** the frontend needs (forms, tables, services).
+3. **Read existing docs** in `docs/solution-design/<feature>.md`.
+4. **List endpoints** to create/update/remove with method, path, body, query, params, access level, and frontend requirements.
+5. **Pick the first endpoint** from the list.
+6. **Define data models** (Prisma, Mongoose, interfaces).
+7. **Define business logic**: data flow, functions, call graph.
+8. **Write/update design doc** in `docs/solution-design/`.
+9. **Write unit tests** (see `backend-tdd-workflow.mdc`); get approval before logic.
+10. **Implement** service + route; ensure tests pass.
+11. **Technical lead review**: standards, security, performance, reliability.
+12. **Update docs** if anything changed.
+13. **Implement frontend integration** (update `../supplychain/src/services` and API routes).
+14. **Repeat** for the next endpoint until the list is complete.
+
+## Clarifying questions
+
+During steps 1–4, **ask the user questions** whenever requirements, access levels, or data ownership are unclear. Do not start coding until ambiguities are resolved.

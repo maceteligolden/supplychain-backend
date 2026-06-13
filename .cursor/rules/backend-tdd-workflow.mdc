@@ -1,0 +1,39 @@
+---
+description: Test-first workflow for API endpoints
+globs: supplychain-backend/**/*.ts
+alwaysApply: false
+---
+
+# Test-first API development
+
+## Order of work
+
+1. Define Zod schemas for params/query/body.
+2. **Write unit tests** for the service method (mock repositories).
+3. **Show tests to the user and wait for approval** before implementing service logic.
+4. Implement service until unit tests pass.
+5. Add integration test with **supertest** for the HTTP route.
+6. Add Swagger JSDoc on the route.
+
+## Test locations
+
+- Unit: `src/__tests__/unit/modules/<feature>/`
+- Integration: `src/__tests__/integration/`
+
+## Commands
+
+```bash
+yarn test:run              # unit
+yarn test:integration      # HTTP
+```
+
+## Example flow
+
+```
+1. health.service.test.ts  ← write first
+2. user approves
+3. health.service.ts         ← implement
+4. health.integration.test.ts
+```
+
+Never merge endpoint logic without tests.

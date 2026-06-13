@@ -1,0 +1,29 @@
+---
+description: No magic numbers — use named constants
+globs: supplychain-backend/**/*.ts
+alwaysApply: false
+---
+
+# Magic numbers
+
+Do not use unexplained numeric literals in business logic, HTTP handlers, or services.
+
+## Rule
+
+Extract literals to **named constants** in `src/shared/constants/` (or feature-local constants file) and import them.
+
+```typescript
+// ❌ BAD
+if (pageLimit > 100) { ... }
+setTimeout(connect, 5000);
+
+// ✅ GOOD
+import { MAX_PAGE_LIMIT, DATABASE_CONNECTION_TIMEOUT_MS } from '@/shared/constants';
+if (pageLimit > MAX_PAGE_LIMIT) { ... }
+setTimeout(connect, DATABASE_CONNECTION_TIMEOUT_MS);
+```
+
+## Exceptions
+
+- `0`, `1`, `-1` in obvious index/loop math
+- Test fixtures where the number is the subject under test (document in test name)

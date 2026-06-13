@@ -1,0 +1,55 @@
+---
+description: Architecture — DI, SOLID, layers, pagination, reliability
+globs: supplychain-backend/**/*.ts
+alwaysApply: false
+---
+
+# Architecture standards
+
+## Layers
+
+- **Routes**: Zod validation, Swagger JSDoc, wire controller methods only.
+- **Controllers**: Execute services, map to HTTP responses. No business logic.
+- **Services**: Business logic, transactions, orchestration.
+- **Repositories / adapters**: Data access (Prisma, Mongoose).
+
+## Dependency injection
+
+- Use **tsyringe** (`@injectable()`, constructor injection).
+- Register bindings in `src/shared/container/`.
+- Do not `new` services inside controllers.
+
+## SOLID / actors
+
+- One service per actor boundary (e.g. `AdminAuthService` ≠ `CustomerAuthService`).
+- Split classes when responsibilities diverge.
+
+## Abstractions
+
+Use when complexity warrants: **adapters** (DB), **facades** (ResponseUtil), **factories** (event types), **strategy** (export formats).
+
+## Pagination
+
+All `GET` list endpoints must use shared pagination (`parsePaginationParams`, `buildPaginatedResult`).
+
+## API validation
+
+Every route with body/query/params must have a **Zod schema** applied in the route file.
+
+## Exports
+
+Re-export public module APIs from each folder's `index.ts`.
+
+## Shared values
+
+Env vars and constants only from `src/shared/constants/`.
+
+## Reliability
+
+- Use **transactions** (Prisma `$transaction`, Mongo sessions) when mutating multiple records.
+- Prefer idempotent handlers where retries are possible.
+- Fail fast with typed errors (`BaseError` subclasses).
+
+## Error handling
+
+Use `errorHandlerMiddleware` — do not send raw stack traces in production.
