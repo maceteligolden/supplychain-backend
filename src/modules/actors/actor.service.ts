@@ -1,5 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 
+import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
+import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
 import {
@@ -20,6 +22,10 @@ import { ActorRepository } from './actor.repository';
 export class ActorService {
   constructor(
     @inject(ActorRepository) private readonly actorRepository: ActorRepository,
+    @inject(SupplyChainEventRepository)
+    private readonly supplyChainEventRepository: SupplyChainEventRepository,
+    @inject(SupplyChainRepository)
+    private readonly supplyChainRepository: SupplyChainRepository,
   ) {}
 
   /** Lists all actors with total count. */
@@ -46,17 +52,74 @@ export class ActorService {
     return mapActorToOutput(record);
   }
 
-  /** Returns actor involvement — empty events/chains until supply chain module exists. */
+  /** Returns actor involvement derived from supply chain events. */
   async getActorInvolvement(id: string): Promise<IActorInvolvementOutput> {
     const actor = await this.getActorById(id);
+    const eventRecords = await this.supplyChainEventRepository.findByActorId(id);
+
+    const supplyChainIds = new Set<string>();
+    const events: IActorInvolvementOutput['events'] = [];
+
+    for (const record of eventRecords) {
+      const supplyChain = await this.supplyChainRepository.findById(
+        record.supplyChainId,
+      );
+
+      if (!supplyChain) {
+        continue;
+      }
+
+      supplyChainIds.add(supplyChain.id);
+      events.push({
+        event: {
+          id: record.id,
+          supplyChainId: record.supplyChainId,
+          type: record.type,
+          occurredAt: record.occurredAt.toISOString(),
+          actorId: record.actorId,
+          notes: record.notes ?? undefined,
+          createdAt: record.createdAt.toISOString(),
+          updatedAt: record.updatedAt.toISOString(),
+        },
+        supplyChain: {
+          id: supplyChain.id,
+          name: supplyChain.name,
+          code: supplyChain.code,
+          description: supplyChain.description ?? undefined,
+          status: supplyChain.status,
+          commodityId: supplyChain.commodityId ?? undefined,
+          createdAt: supplyChain.createdAt.toISOString(),
+          updatedAt: supplyChain.updatedAt.toISOString(),
+        },
+      });
+    }
+
+    const supplyChains = (
+      await Promise.all(
+        [...supplyChainIds].map((chainId) =>
+          this.supplyChainRepository.findById(chainId),
+        ),
+      )
+    )
+      .filter((chain): chain is NonNullable<typeof chain> => chain !== null)
+      .map((chain) => ({
+        id: chain.id,
+        name: chain.name,
+        code: chain.code,
+        description: chain.description ?? undefined,
+        status: chain.status,
+        commodityId: chain.commodityId ?? undefined,
+        createdAt: chain.createdAt.toISOString(),
+        updatedAt: chain.updatedAt.toISOString(),
+      }));
 
     return {
       actor,
-      events: [],
-      supplyChains: [],
+      events,
+      supplyChains,
       stats: {
-        eventCount: 0,
-        supplyChainCount: 0,
+        eventCount: events.length,
+        supplyChainCount: supplyChains.length,
       },
     };
   }

@@ -19,12 +19,28 @@ import {
   CommodityRepository,
   CommodityService,
 } from '@/modules/commodities';
-import { FarmController, FarmRepository, FarmService } from '@/modules/farms';
 import {
-  SupplyChainController,
-  SupplyChainRepository,
-  SupplyChainService,
-} from '@/modules/supply-chains';
+  DashboardController,
+  DashboardService,
+} from '@/modules/dashboard/dashboard.index';
+import { FarmController, FarmRepository, FarmService } from '@/modules/farms';
+import { FarmBoundaryController } from '@/modules/farm-boundaries/farm-boundary.controller';
+import { FarmBoundaryRepository } from '@/modules/farm-boundaries/farm-boundary.repository';
+import { FarmBoundaryService } from '@/modules/farm-boundaries/farm-boundary.service';
+import { AssessmentEngineService } from '@/modules/farm-assessments/assessment-engine.service';
+import { FarmAssessmentController } from '@/modules/farm-assessments/farm-assessment.controller';
+import { FarmAssessmentRepository } from '@/modules/farm-assessments/farm-assessment.repository';
+import { FarmAssessmentService } from '@/modules/farm-assessments/farm-assessment.service';
+import { GfwClient } from '@/shared/integrations/gfw.client';
+import { NominatimClient } from '@/shared/integrations/nominatim.client';
+import { WhispClient } from '@/shared/integrations/whisp.client';
+import { WdpaClient } from '@/shared/integrations/wdpa.client';
+import { SupplyChainEventController } from '@/modules/supply-chain-events/supply-chain-event.controller';
+import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
+import { SupplyChainEventService } from '@/modules/supply-chain-events/supply-chain-event.service';
+import { SupplyChainController } from '@/modules/supply-chains/supply-chain.controller';
+import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
+import { SupplyChainService } from '@/modules/supply-chains/supply-chain.service';
 import { HealthController } from '@/modules/health/health.controller';
 import { HealthService } from '@/modules/health/health.service';
 
@@ -53,6 +69,26 @@ export const setupDependencyContainer = (): void => {
   container.register(FarmService, { useClass: FarmService });
   container.register(FarmController, { useClass: FarmController });
 
+  container.register(NominatimClient, { useClass: NominatimClient });
+  container.register(GfwClient, { useClass: GfwClient });
+  container.register(WhispClient, { useClass: WhispClient });
+  container.register(WdpaClient, { useClass: WdpaClient });
+  container.register(FarmBoundaryRepository, { useClass: FarmBoundaryRepository });
+  container.register(FarmBoundaryService, { useClass: FarmBoundaryService });
+  container.register(FarmBoundaryController, { useClass: FarmBoundaryController });
+  container.register(FarmAssessmentRepository, { useClass: FarmAssessmentRepository });
+  container.register(AssessmentEngineService, { useClass: AssessmentEngineService });
+  container.register(FarmAssessmentService, { useClass: FarmAssessmentService });
+  container.register(FarmAssessmentController, { useClass: FarmAssessmentController });
+
+  container.register(SupplyChainEventRepository, {
+    useClass: SupplyChainEventRepository,
+  });
+  container.register(SupplyChainEventService, { useClass: SupplyChainEventService });
+  container.register(SupplyChainEventController, {
+    useClass: SupplyChainEventController,
+  });
+
   container.register(SupplyChainRepository, { useClass: SupplyChainRepository });
   container.register(SupplyChainService, { useClass: SupplyChainService });
   container.register(SupplyChainController, { useClass: SupplyChainController });
@@ -68,6 +104,9 @@ export const setupDependencyContainer = (): void => {
   container.register(BatchAllocationController, {
     useClass: BatchAllocationController,
   });
+
+  container.register(DashboardService, { useClass: DashboardService });
+  container.register(DashboardController, { useClass: DashboardController });
 };
 
 export { container };

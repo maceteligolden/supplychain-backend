@@ -6,13 +6,18 @@ import { ResponseUtil } from '@/shared/utils';
 
 import { ICreateFarmInput, IUpdateFarmInput } from './farm.interface';
 import { FarmService } from './farm.service';
+import { FarmBoundaryService } from '@/modules/farm-boundaries/farm-boundary.service';
 
 /**
  * FarmController maps HTTP farm requests to FarmService.
  */
 @injectable()
 export class FarmController {
-  constructor(@inject(FarmService) private readonly farmService: FarmService) {}
+  constructor(
+    @inject(FarmService) private readonly farmService: FarmService,
+    @inject(FarmBoundaryService)
+    private readonly farmBoundaryService: FarmBoundaryService,
+  ) {}
 
   /** Handles GET /farms — returns all farms. */
   list = async (_request: Request, response: Response): Promise<void> => {
@@ -46,6 +51,13 @@ export class FarmController {
   remove = async (request: Request, response: Response): Promise<void> => {
     const { id } = request.params as { id: string };
     const output = await this.farmService.deleteFarm(id);
+    ResponseUtil.success(response, output);
+  };
+
+  /** Handles GET /farms/:id/geocode — geocodes farm address for map centering. */
+  geocode = async (request: Request, response: Response): Promise<void> => {
+    const { id } = request.params as { id: string };
+    const output = await this.farmBoundaryService.geocodeFarm(id);
     ResponseUtil.success(response, output);
   };
 }

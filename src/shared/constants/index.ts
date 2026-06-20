@@ -45,5 +45,22 @@ export {
 } from './batch.constants';
 export {
   SUPPLY_CHAIN_STATUSES,
+  SUPPLY_CHAIN_CODE_PATTERN,
   type SupplyChainStatus,
 } from './supply-chain.constants';
+export {
+  SUPPLY_CHAIN_EVENT_TYPES,
+  getSupplyChainEventTypeOrder,
+  type SupplyChainEventType,
+} from './supply-chain-event.constants';
+export {
+  ASSESSMENT_RISK_LEVELS,
+  ASSESSMENT_RISK_LABELS,
+  SUPPLY_CHAIN_OVERALL_RISK_LABELS,
+  SUPPLY_CHAIN_STATUS_LABELS,
+  SUPPLY_CHAIN_EVENT_TYPE_LABELS,
+  maxAssessmentRiskLevel,
+  formatActorAddress,
+  type AssessmentRiskLevel,
+  type SupplyChainOverallRiskLevel,
+} from './supply-chain-labels.constants';

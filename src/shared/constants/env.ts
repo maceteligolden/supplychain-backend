@@ -36,6 +36,19 @@ const envSchema = z.object({
   SUPER_ADMIN_FIRST_NAME: z.string().min(1).default(DEFAULT_SUPER_ADMIN_FIRST_NAME),
   SUPER_ADMIN_LAST_NAME: z.string().min(1).default(DEFAULT_SUPER_ADMIN_LAST_NAME),
   UPLOAD_DIR: z.string().default('uploads'),
+  GFW_API_KEY: z.string().optional().default(''),
+  WDPA_API_TOKEN: z.string().optional().default(''),
+  WHISP_API_KEY: z.string().optional().default(''),
+  PA_PROXIMITY_BUFFER_KM: z.coerce.number().positive().default(1),
+  WHISP_POLL_MS: z.coerce.number().int().positive().default(2000),
+  WHISP_MAX_POLL_ATTEMPTS: z.coerce.number().int().positive().default(30),
+  NOMINATIM_USER_AGENT: z.string().default('SupplyChainTraceabilityPOC/1.0'),
+  ASSESSMENT_SYNC_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
+  ASSESSMENT_WORKER_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  ASSESSMENT_WORKER_POLL_MS: z.coerce.number().int().positive().default(5000),
 });
 
 const parsedEnv = envSchema.parse(process.env);
@@ -60,6 +73,16 @@ export const ENV = {
   SUPER_ADMIN_FIRST_NAME: parsedEnv.SUPER_ADMIN_FIRST_NAME,
   SUPER_ADMIN_LAST_NAME: parsedEnv.SUPER_ADMIN_LAST_NAME,
   UPLOAD_DIR: parsedEnv.UPLOAD_DIR,
+  GFW_API_KEY: parsedEnv.GFW_API_KEY,
+  WDPA_API_TOKEN: parsedEnv.WDPA_API_TOKEN,
+  WHISP_API_KEY: parsedEnv.WHISP_API_KEY,
+  PA_PROXIMITY_BUFFER_KM: parsedEnv.PA_PROXIMITY_BUFFER_KM,
+  WHISP_POLL_MS: parsedEnv.WHISP_POLL_MS,
+  WHISP_MAX_POLL_ATTEMPTS: parsedEnv.WHISP_MAX_POLL_ATTEMPTS,
+  NOMINATIM_USER_AGENT: parsedEnv.NOMINATIM_USER_AGENT,
+  ASSESSMENT_SYNC_TIMEOUT_MS: parsedEnv.ASSESSMENT_SYNC_TIMEOUT_MS,
+  ASSESSMENT_WORKER_ENABLED: parsedEnv.ASSESSMENT_WORKER_ENABLED,
+  ASSESSMENT_WORKER_POLL_MS: parsedEnv.ASSESSMENT_WORKER_POLL_MS,
 } as const;
 
 /** Returns true when running in development mode. */

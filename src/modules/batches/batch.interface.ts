@@ -50,7 +50,22 @@ export interface IBatchCreationStep {
 /** Create response shape expected by the frontend. */
 export interface ICreateBatchOutput {
   batch: IBatchOutput;
-  assessment: null;
+  assessment: {
+    id: string;
+    farmId: string;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+    analysis: {
+      deforestationPercent: number;
+      forestCoverPercent: number;
+      protectedAreaOverlapPercent: number;
+      protectedAreaDetected: boolean;
+    } | null;
+    assessedAt: string | null;
+    boundaryAreaHectares: number | null;
+    status?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
   steps: IBatchCreationStep[];
 }
 

@@ -24,10 +24,19 @@
     "setup": "prisma migrate deploy && prisma db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:build": "docker compose build"
+    "docker:build": "docker compose build",
+    "worker:assessments": "tsx src/workers/assessment-worker.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@turf/area": "^7.3.5",
+    "@turf/bbox": "^7.3.5",
+    "@turf/boolean-intersects": "^7.3.5",
+    "@turf/buffer": "^7.3.5",
+    "@turf/centroid": "^7.3.5",
+    "@turf/distance": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
+    "@turf/intersect": "^7.3.5",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

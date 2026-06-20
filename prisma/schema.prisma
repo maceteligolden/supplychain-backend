@@ -87,6 +87,7 @@ model Actor {
   status         ActorStatus @default(ACTIVE)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  supplyChainEvents SupplyChainEvent[]
 
   @@index([name])
   @@index([status])
@@ -124,8 +125,85 @@ model Farm {
   updatedAt                  DateTime        @updatedAt
   commodities                FarmCommodity[]
   batches                    Batch[]
+  boundary                   FarmBoundary?
+  assessments                FarmAssessment[]
+  landCoverPoints            FarmLandCoverPoint[]
 
   @@index([name])
+}
+
+/// GeoJSON-style polygon boundary for deforestation assessment.
+model FarmBoundary {
+  id            String   @id @default(cuid())
+  farmId        String   @unique
+  coordinates   Json
+  areaHectares  Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  farm          Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+}
+
+enum AssessmentRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FarmAssessmentStatus {
+  PENDING
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+enum FarmAssessmentSource {
+  GFW_WDPA
+  WHISP_GFW_WDPA
+  FALLBACK
+}
+
+/// Deforestation assessment run for a farm boundary.
+model FarmAssessment {
+  id                    String               @id @default(cuid())
+  farmId                String
+  riskLevel             AssessmentRiskLevel?
+  analysis              Json?
+  assessedAt            DateTime?
+  boundaryAreaHectares  Float?
+  status                FarmAssessmentStatus @default(PENDING)
+  errorMessage          String?
+  source                FarmAssessmentSource @default(GFW_WDPA)
+  providerMetadata      Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  farm                  Farm                 @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  landCoverPoints       FarmLandCoverPoint[]
+
+  @@index([farmId])
+  @@index([status])
+  @@index([assessedAt])
+}
+
+enum FarmLandCoverSource {
+  BASELINE
+  ASSESSMENT
+}
+
+/// Land-cover observation point for timeline charts.
+model FarmLandCoverPoint {
+  id                    String              @id @default(cuid())
+  farmId                String
+  observedAt            DateTime
+  forestCoverPercent    Float
+  deforestationPercent  Float
+  source                FarmLandCoverSource
+  assessmentId          String?
+  createdAt             DateTime            @default(now())
+  farm                  Farm                @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  assessment            FarmAssessment?     @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+
+  @@index([farmId])
+  @@index([observedAt])
 }
 
 /// Many-to-many link between farms and commodities they grow.
@@ -155,8 +233,38 @@ model SupplyChain {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   allocations BatchAllocation[]
+  events      SupplyChainEvent[]
 
   @@index([status])
+}
+
+enum SupplyChainEventType {
+  HARVEST
+  COLLECTION
+  PROCESSING
+  WAREHOUSING
+  EXPORT
+  IN_TRANSIT
+  DELIVERED
+}
+
+/// Lifecycle event recorded on a supply chain journey.
+model SupplyChainEvent {
+  id            String               @id @default(cuid())
+  supplyChainId String
+  type          SupplyChainEventType
+  occurredAt    DateTime
+  actorId       String
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  supplyChain   SupplyChain          @relation(fields: [supplyChainId], references: [id], onDelete: Cascade)
+  actor         Actor                @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([supplyChainId, type])
+  @@index([supplyChainId])
+  @@index([occurredAt])
+  @@index([actorId])
 }
 
 enum BatchStatus {

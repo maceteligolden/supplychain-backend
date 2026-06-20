@@ -39,9 +39,11 @@ export class ActorRepository {
   }
 
   /** Returns true when any supply chain event references this actor. */
-  isReferencedByEvents(_id: string): Promise<boolean> {
-    // Supply chain events are not persisted yet — always false until that module lands.
-    return Promise.resolve(false);
+  async isReferencedByEvents(id: string): Promise<boolean> {
+    const count = await prismaClient.supplyChainEvent.count({
+      where: { actorId: id },
+    });
+    return count > 0;
   }
 
   /** Creates a new actor row. */

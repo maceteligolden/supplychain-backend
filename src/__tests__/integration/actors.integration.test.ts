@@ -6,6 +6,8 @@ import { container } from 'tsyringe';
 import { createApp } from '@/app';
 import { AuthMiddleware } from '@/modules/auth/auth.middleware';
 import { ActorRepository, ActorService, type IActorRecord } from '@/modules/actors';
+import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
+import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
 import { setupDependencyContainer } from '@/shared/container';
 import { ISuccessResponseOutput, IErrorResponseOutput } from '@/shared/utils';
 import type {
@@ -129,6 +131,16 @@ describe('Actors API integration', () => {
 
     container.register(ActorRepository, {
       useValue: inMemoryActorRepository,
+    });
+    container.register(SupplyChainEventRepository, {
+      useValue: {
+        findByActorId: () => Promise.resolve([]),
+      } as unknown as SupplyChainEventRepository,
+    });
+    container.register(SupplyChainRepository, {
+      useValue: {
+        findById: () => Promise.resolve(null),
+      } as unknown as SupplyChainRepository,
     });
     container.register(ActorService, { useClass: ActorService });
 

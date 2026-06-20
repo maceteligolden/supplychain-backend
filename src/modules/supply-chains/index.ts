@@ -7,4 +7,12 @@ export type {
   ISupplyChainRecord,
   ISupplyChainOutput,
   IGetSupplyChainsOutput,
+  ICreateSupplyChainInput,
+  IUpdateSupplyChainInput,
+  IDeleteSupplyChainOutput,
+  ISupplyChainAllocationInput,
+  ISyncSupplyChainAllocationsInput,
+  ISyncSupplyChainAllocationsOutput,
+  ISupplyChainRiskSummaryOutput,
+  ISupplyChainReportOutput,
 } from './supply-chain.interface';

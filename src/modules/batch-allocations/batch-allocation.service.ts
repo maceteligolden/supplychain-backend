@@ -3,6 +3,10 @@ import { inject, injectable } from 'tsyringe';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 import { BatchRepository } from '@/modules/batches/batch.repository';
 import { deriveBatchStatus } from '@/modules/batches/batch.util';
+import {
+  ISupplyChainAllocationInput,
+  ISyncSupplyChainAllocationsOutput,
+} from '@/modules/supply-chains/supply-chain.interface';
 import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
 
 import {
@@ -153,6 +157,113 @@ export class BatchAllocationService {
     await this.syncBatchStatus(existing.batchId);
 
     return { success: true, id };
+  }
+
+  /** Replaces all allocations for a supply chain with the given payload. */
+  async syncSupplyChainAllocations(
+    supplyChainId: string,
+    items: ISupplyChainAllocationInput[],
+  ): Promise<ISyncSupplyChainAllocationsOutput> {
+    const supplyChain = await this.supplyChainRepository.findById(supplyChainId);
+
+    if (!supplyChain) {
+      throw new NotFoundError('Supply chain not found');
+    }
+
+    if (supplyChain.status !== 'ACTIVE') {
+      throw new BadRequestError('Supply chain is not active');
+    }
+
+    const normalized = items.filter((item) => item.quantity > 0);
+
+    for (const item of normalized) {
+      await this.assertSyncQuantityAllowed({
+        batchId: item.batchId,
+        supplyChainId,
+        quantity: item.quantity,
+      });
+    }
+
+    const existingForChain =
+      await this.batchAllocationRepository.findBySupplyChainId(supplyChainId);
+    const nextBatchIds = new Set(normalized.map((item) => item.batchId));
+    const affectedBatchIds = new Set<string>();
+
+    for (const existing of existingForChain) {
+      if (!nextBatchIds.has(existing.batchId)) {
+        await this.batchAllocationRepository.deleteById(existing.id);
+        affectedBatchIds.add(existing.batchId);
+      }
+    }
+
+    const result: IAllocationOutput[] = [];
+
+    for (const item of normalized) {
+      const existing = await this.batchAllocationRepository.findByBatchAndSupplyChain(
+        item.batchId,
+        supplyChainId,
+      );
+
+      if (existing) {
+        const updated = await this.batchAllocationRepository.updateById(existing.id, {
+          quantity: item.quantity,
+        });
+
+        if (!updated) {
+          throw new NotFoundError('Batch allocation not found');
+        }
+
+        result.push(mapAllocationToOutput(updated));
+        affectedBatchIds.add(item.batchId);
+      } else {
+        const created = await this.batchAllocationRepository.create({
+          batchId: item.batchId,
+          supplyChainId,
+          quantity: item.quantity,
+          allocatedAt: new Date(),
+        });
+
+        result.push(mapAllocationToOutput(created));
+        affectedBatchIds.add(item.batchId);
+      }
+    }
+
+    for (const batchId of affectedBatchIds) {
+      await this.syncBatchStatus(batchId);
+    }
+
+    return {
+      allocations: result,
+      total: result.length,
+    };
+  }
+
+  private async assertSyncQuantityAllowed(input: {
+    batchId: string;
+    supplyChainId: string;
+    quantity: number;
+  }): Promise<void> {
+    const batch = await this.batchRepository.findById(input.batchId);
+
+    if (!batch) {
+      throw new BadRequestError('Batch not found', {
+        issues: [{ path: 'batchId', message: 'Batch must exist' }],
+      });
+    }
+
+    const existingOnChain =
+      await this.batchAllocationRepository.findByBatchAndSupplyChain(
+        input.batchId,
+        input.supplyChainId,
+      );
+    const totalAllocated =
+      await this.batchAllocationRepository.getTotalAllocatedForBatch(input.batchId);
+    const currentOnChain = existingOnChain?.quantity ?? 0;
+    const otherAllocated = totalAllocated - currentOnChain;
+
+    if (otherAllocated + input.quantity > batch.quantity) {
+      throw new BadRequestError('Allocation exceeds remaining batch quantity');
+    }
   }
 
   private async syncBatchStatus(batchId: string): Promise<void> {

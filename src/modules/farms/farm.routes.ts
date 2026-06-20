@@ -4,6 +4,12 @@ import { container } from 'tsyringe';
 import { validateRequestMiddleware } from '@/shared/middleware';
 import { AuthMiddleware } from '@/modules/auth';
 
+import { createFarmBoundaryRoutes } from '@/modules/farm-boundaries/farm-boundary.routes';
+import {
+  createFarmAssessmentRoutes,
+  createFarmLandCoverRoutes,
+} from '@/modules/farm-assessments/farm-assessment.routes';
+
 import { FarmController } from './farm.controller';
 import {
   createFarmBodySchema,
@@ -57,6 +63,16 @@ export const createFarmRoutes = (): Router => {
     '/',
     validateRequestMiddleware(createFarmBodySchema, 'body'),
     asyncHandler(farmController.create),
+  );
+
+  router.use('/:id/boundary', createFarmBoundaryRoutes());
+  router.use('/:id/assessments', createFarmAssessmentRoutes());
+  router.use('/:id/land-cover-timeline', createFarmLandCoverRoutes());
+
+  router.get(
+    '/:id/geocode',
+    validateRequestMiddleware(farmIdParamsSchema, 'params'),
+    asyncHandler(farmController.geocode),
   );
 
   /**

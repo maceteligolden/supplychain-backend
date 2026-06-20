@@ -1,4 +1,9 @@
-import { ActorStatus, ActorType } from '@/shared/constants';
+import {
+  ActorStatus,
+  ActorType,
+  SupplyChainEventType,
+  SupplyChainStatus,
+} from '@/shared/constants';
 
 /** Nested address DTO returned by the API. */
 export interface IActorAddressOutput {
@@ -50,15 +55,42 @@ export interface IDeleteActorOutput {
   id: string;
 }
 
-/** Involvement response — events/chains empty until supply chain module exists. */
+/** Involvement response with supply chain events. */
 export interface IActorInvolvementOutput {
   actor: IActorOutput;
-  events: [];
-  supplyChains: [];
+  events: IActorInvolvementEventOutput[];
+  supplyChains: IActorInvolvementSupplyChainOutput[];
   stats: {
     eventCount: number;
     supplyChainCount: number;
   };
+}
+
+/** Supply chain summary embedded in actor involvement. */
+export interface IActorInvolvementSupplyChainOutput {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  status: SupplyChainStatus;
+  commodityId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Event entry embedded in actor involvement. */
+export interface IActorInvolvementEventOutput {
+  event: {
+    id: string;
+    supplyChainId: string;
+    type: SupplyChainEventType;
+    occurredAt: string;
+    actorId: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  supplyChain: IActorInvolvementSupplyChainOutput;
 }
 
 /** PostgreSQL actor row returned from queries. */

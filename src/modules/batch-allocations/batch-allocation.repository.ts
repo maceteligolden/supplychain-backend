@@ -9,6 +9,13 @@ import { IAllocationRecord } from './batch-allocation.interface';
  */
 @injectable()
 export class BatchAllocationRepository {
+  /** Returns all batch allocations sorted by allocatedAt descending. */
+  async findAll(): Promise<IAllocationRecord[]> {
+    return prismaClient.batchAllocation.findMany({
+      orderBy: { allocatedAt: 'desc' },
+    });
+  }
+
   /** Finds a batch allocation by id. */
   async findById(id: string): Promise<IAllocationRecord | null> {
     return prismaClient.batchAllocation.findUnique({ where: { id } });
@@ -82,6 +89,32 @@ export class BatchAllocationRepository {
     } catch {
       return null;
     }
+  }
+
+  /** Finds allocation for a batch on a specific supply chain. */
+  async findByBatchAndSupplyChain(
+    batchId: string,
+    supplyChainId: string,
+  ): Promise<IAllocationRecord | null> {
+    return prismaClient.batchAllocation.findFirst({
+      where: { batchId, supplyChainId },
+    });
+  }
+
+  /** Deletes all allocations for a supply chain. Returns affected batch ids. */
+  async deleteAllBySupplyChainId(supplyChainId: string): Promise<string[]> {
+    const existing = await prismaClient.batchAllocation.findMany({
+      where: { supplyChainId },
+      select: { batchId: true },
+    });
+
+    if (existing.length === 0) {
+      return [];
+    }
+
+    await prismaClient.batchAllocation.deleteMany({ where: { supplyChainId } });
+
+    return [...new Set(existing.map((row) => row.batchId))];
   }
 
   /** Deletes a batch allocation by id. Returns true when a row was removed. */

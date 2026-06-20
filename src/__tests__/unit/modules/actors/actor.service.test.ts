@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActorRepository } from '@/modules/actors/actor.repository';
 import { ActorService } from '@/modules/actors/actor.service';
+import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
+import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
 const mockRecord = {
@@ -21,6 +23,8 @@ const mockRecord = {
 
 describe('ActorService', () => {
   let mockActorRepository: ActorRepository;
+  let mockSupplyChainEventRepository: SupplyChainEventRepository;
+  let mockSupplyChainRepository: SupplyChainRepository;
   let actorService: ActorService;
 
   beforeEach(() => {
@@ -35,7 +39,19 @@ describe('ActorService', () => {
       deleteById: vi.fn(),
     };
 
-    actorService = new ActorService(mockActorRepository);
+    mockSupplyChainEventRepository = {
+      findByActorId: vi.fn().mockResolvedValue([]),
+    } as unknown as SupplyChainEventRepository;
+
+    mockSupplyChainRepository = {
+      findById: vi.fn(),
+    } as unknown as SupplyChainRepository;
+
+    actorService = new ActorService(
+      mockActorRepository,
+      mockSupplyChainEventRepository,
+      mockSupplyChainRepository,
+    );
   });
 
   it('listActors returns mapped actors and total', async () => {

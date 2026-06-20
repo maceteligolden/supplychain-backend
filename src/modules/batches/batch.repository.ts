@@ -10,6 +10,18 @@ import { IBatchRecord } from './batch.interface';
  */
 @injectable()
 export class BatchRepository {
+  /** Returns all batches sorted by harvest date descending. */
+  async findAll(): Promise<IBatchRecord[]> {
+    return prismaClient.batch.findMany({
+      orderBy: [{ harvestDate: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  /** Returns total batch count. */
+  async countAll(): Promise<number> {
+    return prismaClient.batch.count();
+  }
+
   /** Finds all batches for a farm sorted by harvest date descending. */
   async findByFarmId(farmId: string): Promise<IBatchRecord[]> {
     return prismaClient.batch.findMany({

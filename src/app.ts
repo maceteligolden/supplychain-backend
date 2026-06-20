@@ -13,6 +13,7 @@ import { createActorRoutes } from '@/modules/actors';
 import { createAuthRoutes } from '@/modules/auth';
 import { createBatchAllocationRoutes } from '@/modules/batch-allocations';
 import { createBatchRoutes } from '@/modules/batches';
+import { createDashboardRoutes } from '@/modules/dashboard/dashboard.index';
 import { createCommodityRoutes } from '@/modules/commodities';
 import { createFarmRoutes } from '@/modules/farms';
 import { createSupplyChainRoutes } from '@/modules/supply-chains';
@@ -75,6 +76,7 @@ export const createApp = (): Express => {
   app.use(`${apiBasePath}/batches`, createBatchRoutes());
   app.use(`${apiBasePath}/batch-allocations`, createBatchAllocationRoutes());
   app.use(`${apiBasePath}/supply-chains`, createSupplyChainRoutes());
+  app.use(`${apiBasePath}/dashboard`, createDashboardRoutes());
 
   app.use(notFoundHandlerMiddleware);
   app.use(errorHandlerMiddleware);

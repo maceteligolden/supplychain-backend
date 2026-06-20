@@ -1,5 +1,8 @@
 import { inject, injectable } from 'tsyringe';
 
+import { FarmBoundaryRepository } from '@/modules/farm-boundaries/farm-boundary.repository';
+import { IFarmAssessmentOutput } from '@/modules/farm-assessments/farm-assessment.interface';
+import { FarmAssessmentService } from '@/modules/farm-assessments/farm-assessment.service';
 import { CommodityRepository } from '@/modules/commodities';
 import { FarmRepository } from '@/modules/farms';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
@@ -30,25 +33,39 @@ const mapBatchToOutput = (record: IBatchRecord): IBatchOutput => ({
   updatedAt: record.updatedAt.toISOString(),
 });
 
-const buildCreationSteps = (batchNumber: string): IBatchCreationStep[] => [
-  {
-    id: 'create-batch',
-    label: 'Harvest batch recorded',
-    status: 'completed',
-    detail: batchNumber,
-  },
-  {
-    id: 'run-assessment',
-    label: 'Deforestation assessment skipped',
-    status: 'skipped',
-    detail: 'Farm assessment workflow not enabled',
-  },
-  {
-    id: 'complete',
-    label: 'Batch workflow complete',
-    status: 'completed',
-  },
-];
+const buildCreationSteps = (
+  batchNumber: string,
+  assessment: IFarmAssessmentOutput | null,
+): IBatchCreationStep[] => {
+  const assessmentStep: IBatchCreationStep = assessment
+    ? {
+        id: 'run-assessment',
+        label: 'Deforestation assessment completed',
+        status: assessment.status === 'COMPLETE' ? 'completed' : 'pending',
+        detail: assessment.riskLevel ?? assessment.status,
+      }
+    : {
+        id: 'run-assessment',
+        label: 'Deforestation assessment skipped',
+        status: 'skipped',
+        detail: 'Farm boundary not mapped',
+      };
+
+  return [
+    {
+      id: 'create-batch',
+      label: 'Harvest batch recorded',
+      status: 'completed',
+      detail: batchNumber,
+    },
+    assessmentStep,
+    {
+      id: 'complete',
+      label: 'Batch workflow complete',
+      status: 'completed',
+    },
+  ];
+};
 
 /**
  * BatchService implements harvest batch CRUD and creation workflow logic.
@@ -60,6 +77,10 @@ export class BatchService {
     @inject(FarmRepository) private readonly farmRepository: FarmRepository,
     @inject(CommodityRepository)
     private readonly commodityRepository: CommodityRepository,
+    @inject(FarmBoundaryRepository)
+    private readonly farmBoundaryRepository: FarmBoundaryRepository,
+    @inject(FarmAssessmentService)
+    private readonly farmAssessmentService: FarmAssessmentService,
   ) {}
 
   /** Lists batches for a farm with total count. */
@@ -157,10 +178,18 @@ export class BatchService {
 
     const batch = mapBatchToOutput(record);
 
+    let assessment: IFarmAssessmentOutput | null = null;
+    const boundary = await this.farmBoundaryRepository.findByFarmId(input.farmId);
+
+    if (boundary) {
+      const result = await this.farmAssessmentService.runAssessment(input.farmId);
+      assessment = result.assessment.status === 'COMPLETE' ? result.assessment : null;
+    }
+
     return {
       batch,
-      assessment: null,
-      steps: buildCreationSteps(batch.batchNumber),
+      assessment,
+      steps: buildCreationSteps(batch.batchNumber, assessment),
     };
   }
 

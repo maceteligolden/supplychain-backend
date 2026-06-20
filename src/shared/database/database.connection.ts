@@ -1,11 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 
-import { seedActorsIfEmpty } from '@/modules/actors';
-import { seedBatchAllocationsIfEmpty } from '@/modules/batch-allocations';
-import { seedBatchesIfEmpty } from '@/modules/batches';
-import { seedCommoditiesIfEmpty } from '@/modules/commodities';
-import { seedFarmsIfEmpty } from '@/modules/farms';
-import { seedSupplyChainsIfEmpty } from '@/modules/supply-chains';
+import { seedActorsIfEmpty } from '@/modules/actors/actor.seed';
+import { seedBatchAllocationsIfEmpty } from '@/modules/batch-allocations/batch-allocation.seed';
+import { seedBatchesIfEmpty } from '@/modules/batches/batch.seed';
+import { seedCommoditiesIfEmpty } from '@/modules/commodities/commodity.seed';
+import { seedFarmBoundariesIfEmpty } from '@/modules/farm-boundaries/farm-boundary.seed';
+import { seedFarmAssessmentsIfEmpty } from '@/modules/farm-assessments/farm-assessment.seed';
+import { seedFarmsIfEmpty } from '@/modules/farms/farm.seed';
+import { seedSupplyChainsIfEmpty } from '@/modules/supply-chains/supply-chain.seed';
+import { seedSupplyChainEventsIfEmpty } from '@/modules/supply-chain-events/supply-chain-event.seed';
 import { DATABASE_CONNECTION_TIMEOUT_MS, ENV, isDevelopment } from '@/shared/constants';
 import { createChildLogger } from '@/shared/utils';
 
@@ -61,8 +64,11 @@ export const bootstrapServer = async (listen: () => void): Promise<void> => {
     await seedActorsIfEmpty();
     await seedSupplyChainsIfEmpty();
     await seedFarmsIfEmpty();
+    await seedFarmBoundariesIfEmpty();
     await seedBatchesIfEmpty();
     await seedBatchAllocationsIfEmpty();
+    await seedSupplyChainEventsIfEmpty();
+    await seedFarmAssessmentsIfEmpty();
   } catch (error) {
     if (isDevelopment()) {
       databaseLogger.warn(
