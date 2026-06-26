@@ -1,3 +1,5 @@
+import area from '@turf/area';
+import { feature } from '@turf/helpers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const SAMPLE_GEOJSON: GeoJSON.Polygon = {
@@ -13,34 +15,37 @@ const SAMPLE_GEOJSON: GeoJSON.Polygon = {
   ],
 };
 
+const SAMPLE_FARM_AREA_HECTARES = area(feature(SAMPLE_GEOJSON)) / 10_000;
+
+async function loadWdpaClient(): Promise<
+  typeof import('@/shared/integrations/wdpa.client')
+> {
+  return import('@/shared/integrations/wdpa.client');
+}
+
 describe('WdpaClient', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
-    vi.resetModules();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.doUnmock('@/shared/constants');
+    vi.unstubAllEnvs();
+    vi.resetModules();
     vi.restoreAllMocks();
   });
 
   it('returns heuristic overlap when no API token is configured', async () => {
-    vi.doMock('@/shared/constants', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/shared/constants')>();
-      return {
-        ...actual,
-        ENV: { ...actual.ENV, WDPA_API_TOKEN: '' },
-      };
-    });
+    vi.stubEnv('WDPA_API_TOKEN', '');
+    vi.resetModules();
 
-    const { WdpaClient } = await import('@/shared/integrations/wdpa.client');
+    const { WdpaClient } = await loadWdpaClient();
     const client = new WdpaClient();
     const result = await client.analyzeProtectedAreas({
       geoJson: SAMPLE_GEOJSON,
       farmId: 'farm-ashanti',
       centroidLatitude: 6.6885,
-      farmAreaHectares: 4.91,
+      farmAreaHectares: SAMPLE_FARM_AREA_HECTARES,
     });
 
     expect(result.protectedAreaOverlapPercent).toBeGreaterThanOrEqual(0);
@@ -49,13 +54,8 @@ describe('WdpaClient', () => {
   });
 
   it('computes overlap when WDPA search returns intersecting geometries', async () => {
-    vi.doMock('@/shared/constants', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/shared/constants')>();
-      return {
-        ...actual,
-        ENV: { ...actual.ENV, WDPA_API_TOKEN: 'test-token' },
-      };
-    });
+    vi.stubEnv('WDPA_API_TOKEN', 'test-token');
+    vi.resetModules();
 
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
@@ -71,13 +71,13 @@ describe('WdpaClient', () => {
         }),
     } as Response);
 
-    const { WdpaClient } = await import('@/shared/integrations/wdpa.client');
+    const { WdpaClient } = await loadWdpaClient();
     const client = new WdpaClient();
     const result = await client.analyzeProtectedAreas({
       geoJson: SAMPLE_GEOJSON,
       farmId: 'farm-api',
       centroidLatitude: 6.6885,
-      farmAreaHectares: 4.91,
+      farmAreaHectares: SAMPLE_FARM_AREA_HECTARES,
     });
 
     expect(result.protectedAreaDetected).toBe(true);

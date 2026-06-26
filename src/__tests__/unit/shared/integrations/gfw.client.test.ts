@@ -20,28 +20,29 @@ const SAMPLE_GEOJSON: GeoJSON.Polygon = {
   ],
 };
 
+async function loadGfwClient(): Promise<
+  typeof import('@/shared/integrations/gfw.client')
+> {
+  return import('@/shared/integrations/gfw.client');
+}
+
 describe('GfwClient', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
-    vi.resetModules();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.doUnmock('@/shared/constants');
+    vi.unstubAllEnvs();
+    vi.resetModules();
     vi.restoreAllMocks();
   });
 
   it('returns deterministic fallback metrics when no API key is configured', async () => {
-    vi.doMock('@/shared/constants', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/shared/constants')>();
-      return {
-        ...actual,
-        ENV: { ...actual.ENV, GFW_API_KEY: '' },
-      };
-    });
+    vi.stubEnv('GFW_API_KEY', '');
+    vi.resetModules();
 
-    const { GfwClient } = await import('@/shared/integrations/gfw.client');
+    const { GfwClient } = await loadGfwClient();
     const client = new GfwClient();
     const result = await client.analyzePolygon({
       farmId: 'farm-ashanti',
@@ -56,13 +57,8 @@ describe('GfwClient', () => {
   });
 
   it('uses GFW API responses when an API key is configured', async () => {
-    vi.doMock('@/shared/constants', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@/shared/constants')>();
-      return {
-        ...actual,
-        ENV: { ...actual.ENV, GFW_API_KEY: 'test-key' },
-      };
-    });
+    vi.stubEnv('GFW_API_KEY', 'test-key');
+    vi.resetModules();
 
     vi.mocked(fetch)
       .mockResolvedValueOnce({
@@ -87,7 +83,7 @@ describe('GfwClient', () => {
           }),
       } as Response);
 
-    const { GfwClient } = await import('@/shared/integrations/gfw.client');
+    const { GfwClient } = await loadGfwClient();
     const client = new GfwClient();
     const result = await client.analyzePolygon({
       farmId: 'farm-api',
