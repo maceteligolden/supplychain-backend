@@ -10,8 +10,10 @@ import {
   CommodityService,
   type ICommodityRecord,
 } from '@/modules/commodities';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
+import { InMemoryInventoryCodeRepository } from '@/__tests__/helpers/in-memory-inventory-code.repository';
 import { setupDependencyContainer } from '@/shared/container';
-import { ISuccessResponseOutput, IErrorResponseOutput } from '@/shared/utils';
+import { ISuccessResponseOutput } from '@/shared/utils';
 import type { ICommodityOutput, IGetCommoditiesOutput } from '@/modules/commodities';
 
 class InMemoryCommodityRepository extends CommodityRepository {
@@ -106,6 +108,9 @@ describe('Commodities API integration', () => {
     container.register(CommodityRepository, {
       useValue: inMemoryCommodityRepository,
     });
+    container.register(InventoryCodeRepository, {
+      useValue: new InMemoryInventoryCodeRepository(),
+    });
     container.register(CommodityService, { useClass: CommodityService });
 
     container.register(AuthMiddleware, {
@@ -136,13 +141,12 @@ describe('Commodities API integration', () => {
     const app = createApp();
     const response = await request(app).post('/api/v1/commodities').send({
       name: 'Cocoa',
-      code: 'cocoa',
       unit: 'KG',
     });
     const body = response.body as ISuccessResponseOutput<ICommodityOutput>;
 
     expect(response.status).toBe(201);
-    expect(body.data.code).toBe('COCOA');
+    expect(body.data.code).toMatch(/^COM-\d{4}-\d{4}$/);
     expect(body.data.imageUrl).toBe('');
   });
 
@@ -151,7 +155,6 @@ describe('Commodities API integration', () => {
     const response = await request(app)
       .post('/api/v1/commodities')
       .field('name', 'Coffee')
-      .field('code', 'COFFEE')
       .field('unit', 'KG')
       .attach('image', Buffer.from('fake-image-bytes'), {
         filename: 'coffee.png',
@@ -163,31 +166,30 @@ describe('Commodities API integration', () => {
     expect(body.data.imageUrl).toMatch(/^\/uploads\/commodities\/[a-f0-9-]+\.png$/);
   });
 
-  it('POST /api/v1/commodities rejects duplicate code', async () => {
+  it('POST /api/v1/commodities allocates unique inventory codes', async () => {
     const app = createApp();
 
-    await request(app).post('/api/v1/commodities').send({
+    const first = await request(app).post('/api/v1/commodities').send({
       name: 'Cocoa',
-      code: 'COCOA',
       unit: 'KG',
     });
-
-    const duplicateResponse = await request(app).post('/api/v1/commodities').send({
+    const second = await request(app).post('/api/v1/commodities').send({
       name: 'Another Cocoa',
-      code: 'COCOA',
       unit: 'TON',
     });
 
-    expect(duplicateResponse.status).toBe(400);
-    const duplicateBody = duplicateResponse.body as IErrorResponseOutput;
-    expect(duplicateBody.message).toBe('Commodity code already exists');
+    const firstBody = first.body as ISuccessResponseOutput<ICommodityOutput>;
+    const secondBody = second.body as ISuccessResponseOutput<ICommodityOutput>;
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(firstBody.data.code).not.toBe(secondBody.data.code);
   });
 
   it('GET /api/v1/commodities/:id returns commodity', async () => {
     const app = createApp();
     const createResponse = await request(app).post('/api/v1/commodities').send({
       name: 'Gum Arabic',
-      code: 'GUM_ARABIC',
       unit: 'KG',
     });
     const created = createResponse.body as ISuccessResponseOutput<ICommodityOutput>;
@@ -198,14 +200,13 @@ describe('Commodities API integration', () => {
     const body = getResponse.body as ISuccessResponseOutput<ICommodityOutput>;
 
     expect(getResponse.status).toBe(200);
-    expect(body.data.code).toBe('GUM_ARABIC');
+    expect(body.data.code).toBe(created.data.code);
   });
 
   it('PATCH /api/v1/commodities/:id updates commodity', async () => {
     const app = createApp();
     const createResponse = await request(app).post('/api/v1/commodities').send({
       name: 'Cocoa',
-      code: 'COCOA',
       unit: 'KG',
     });
     const created = createResponse.body as ISuccessResponseOutput<ICommodityOutput>;
@@ -223,7 +224,6 @@ describe('Commodities API integration', () => {
     const app = createApp();
     const createResponse = await request(app).post('/api/v1/commodities').send({
       name: 'Cocoa',
-      code: 'COCOA',
       unit: 'KG',
     });
     const created = createResponse.body as ISuccessResponseOutput<ICommodityOutput>;

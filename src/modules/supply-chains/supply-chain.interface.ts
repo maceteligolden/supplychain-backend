@@ -40,7 +40,6 @@ export type ISupplyChainAllocationInput = {
 
 export interface ICreateSupplyChainInput {
   name: string;
-  code: string;
   description?: string;
   status: SupplyChainStatus;
   commodityId?: string;
@@ -49,7 +48,6 @@ export interface ICreateSupplyChainInput {
 
 export interface IUpdateSupplyChainInput {
   name?: string;
-  code?: string;
   description?: string;
   status?: SupplyChainStatus;
   commodityId?: string;

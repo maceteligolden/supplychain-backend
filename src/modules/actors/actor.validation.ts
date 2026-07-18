@@ -1,19 +1,9 @@
 import { z } from 'zod';
 
-import { ACTOR_CODE_PATTERN, ACTOR_STATUSES, ACTOR_TYPES } from '@/shared/constants';
+import { ACTOR_STATUSES, ACTOR_TYPES } from '@/shared/constants';
 
 const actorTypeSchema = z.enum(ACTOR_TYPES);
 const actorStatusSchema = z.enum(ACTOR_STATUSES);
-
-const actorCodeSchema = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .min(2)
-  .max(50)
-  .regex(ACTOR_CODE_PATTERN, {
-    message: 'Code must contain only uppercase letters, numbers, and underscores',
-  });
 
 const actorAddressBodySchema = z.object({
   line1: z.string().trim().max(200).optional(),
@@ -33,7 +23,6 @@ const updateActorAddressBodySchema = z.object({
 export const createActorBodySchema = z.object({
   body: z.object({
     name: z.string().trim().min(2).max(100),
-    code: actorCodeSchema,
     type: actorTypeSchema,
     address: actorAddressBodySchema,
     status: actorStatusSchema,
@@ -45,7 +34,6 @@ export const updateActorBodySchema = z.object({
   body: z
     .object({
       name: z.string().trim().min(2).max(100).optional(),
-      code: actorCodeSchema.optional(),
       type: actorTypeSchema.optional(),
       address: updateActorAddressBodySchema.optional(),
       status: actorStatusSchema.optional(),

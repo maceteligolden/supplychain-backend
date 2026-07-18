@@ -1,22 +1,11 @@
 import { z } from 'zod';
 
-import { BATCH_NUMBER_PATTERN, ISO_DATE_PATTERN } from '@/shared/constants';
+import { ISO_DATE_PATTERN } from '@/shared/constants';
 
 const harvestDateSchema = z
   .string()
   .trim()
   .regex(ISO_DATE_PATTERN, { message: 'Harvest date must be YYYY-MM-DD' });
-
-const batchNumberSchema = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .min(2)
-  .max(80)
-  .regex(BATCH_NUMBER_PATTERN, {
-    message:
-      'Batch number must contain only uppercase letters, numbers, and underscores',
-  });
 
 /** Zod schema for list batches query — farmId is required. */
 export const listBatchesQuerySchema = z.object({
@@ -31,7 +20,6 @@ export const createBatchBodySchema = z.object({
     farmId: z.string().trim().min(1),
     harvestDate: harvestDateSchema,
     quantity: z.number().positive(),
-    batchNumber: batchNumberSchema.optional(),
     commodityId: z.string().trim().min(1).optional(),
   }),
 });

@@ -24,3 +24,4 @@ export {
   getRefreshTokenMaxAgeSeconds,
 } from './jwt.util';
 export type { IAccessTokenPayload } from './jwt.util';
+export { formatInventoryCode, getInventoryCodeYear } from './inventory-code.util';

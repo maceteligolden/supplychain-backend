@@ -1,7 +1,9 @@
 import { inject, injectable } from 'tsyringe';
 
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
 import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
 import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
+import { INVENTORY_CODE_PREFIXES } from '@/shared/constants';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
 import {
@@ -26,6 +28,8 @@ export class ActorService {
     private readonly supplyChainEventRepository: SupplyChainEventRepository,
     @inject(SupplyChainRepository)
     private readonly supplyChainRepository: SupplyChainRepository,
+    @inject(InventoryCodeRepository)
+    private readonly inventoryCodeRepository: InventoryCodeRepository,
   ) {}
 
   /** Lists all actors with total count. */
@@ -124,10 +128,11 @@ export class ActorService {
     };
   }
 
-  /** Creates an actor with a unique code. */
+  /** Creates an actor with a server-generated inventory code. */
   async createActor(input: ICreateActorInput): Promise<IActorOutput> {
-    const code = input.code.toUpperCase();
-    await this.assertCodeAvailable(code);
+    const code = await this.inventoryCodeRepository.allocateNextCode(
+      INVENTORY_CODE_PREFIXES.ACTOR,
+    );
 
     const record = await this.actorRepository.create({
       name: input.name,
@@ -140,18 +145,12 @@ export class ActorService {
     return mapActorToOutput(record);
   }
 
-  /** Updates an existing actor. */
+  /** Updates an existing actor. Codes are immutable. */
   async updateActor(id: string, input: IUpdateActorInput): Promise<IActorOutput> {
     const existing = await this.actorRepository.findById(id);
 
     if (!existing) {
       throw new NotFoundError('Actor not found');
-    }
-
-    const nextCode = input.code ? input.code.toUpperCase() : existing.code;
-
-    if (nextCode !== existing.code) {
-      await this.assertCodeAvailable(nextCode, id);
     }
 
     const nextAddress = input.address
@@ -168,7 +167,6 @@ export class ActorService {
 
     const updated = await this.actorRepository.updateById(id, {
       name: input.name,
-      code: input.code ? nextCode : undefined,
       type: input.type,
       status: input.status,
       address: nextAddress,
@@ -204,15 +202,5 @@ export class ActorService {
     }
 
     return { success: true, id };
-  }
-
-  private async assertCodeAvailable(code: string, excludeId?: string): Promise<void> {
-    const existing = await this.actorRepository.findByCode(code);
-
-    if (existing && existing.id !== excludeId) {
-      throw new BadRequestError('Actor code already exists', {
-        issues: [{ path: 'code', message: 'Code must be unique' }],
-      });
-    }
   }
 }

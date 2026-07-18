@@ -1,18 +1,8 @@
 import { z } from 'zod';
 
-import { SUPPLY_CHAIN_CODE_PATTERN, SUPPLY_CHAIN_STATUSES } from '@/shared/constants';
+import { SUPPLY_CHAIN_STATUSES } from '@/shared/constants';
 
 const supplyChainStatusSchema = z.enum(SUPPLY_CHAIN_STATUSES);
-
-const supplyChainCodeSchema = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .min(2)
-  .max(50)
-  .regex(SUPPLY_CHAIN_CODE_PATTERN, {
-    message: 'Code must contain only uppercase letters, numbers, and underscores',
-  });
 
 const allocationItemSchema = z.object({
   batchId: z.string().trim().min(1),
@@ -23,7 +13,6 @@ const allocationItemSchema = z.object({
 export const createSupplyChainBodySchema = z.object({
   body: z.object({
     name: z.string().trim().min(2).max(100),
-    code: supplyChainCodeSchema,
     description: z.string().trim().max(500).optional(),
     status: supplyChainStatusSchema,
     commodityId: z.string().trim().min(1).optional(),
@@ -36,7 +25,6 @@ export const updateSupplyChainBodySchema = z.object({
   body: z
     .object({
       name: z.string().trim().min(2).max(100).optional(),
-      code: supplyChainCodeSchema.optional(),
       description: z.string().trim().max(500).optional(),
       status: supplyChainStatusSchema.optional(),
       commodityId: z.string().trim().min(1).optional(),

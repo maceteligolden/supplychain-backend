@@ -19,7 +19,6 @@ export interface ICreateBatchInput {
   farmId: string;
   harvestDate: string;
   quantity: number;
-  batchNumber?: string;
   /** Required when the farm grows more than one commodity. */
   commodityId?: string;
 }

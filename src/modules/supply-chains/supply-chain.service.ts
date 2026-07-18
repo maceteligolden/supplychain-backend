@@ -7,6 +7,7 @@ import { BatchAllocationRepository } from '@/modules/batch-allocations/batch-all
 import { IBatchRecord } from '@/modules/batches/batch.interface';
 import { ICommodityRecord } from '@/modules/commodities/commodity.interface';
 import { IFarmRecord } from '@/modules/farms/farm.interface';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
 import { ISupplyChainEventRecord } from '@/modules/supply-chain-events/supply-chain-event.interface';
 import { BatchAllocationService } from '@/modules/batch-allocations/batch-allocation.service';
 import { BatchRepository } from '@/modules/batches/batch.repository';
@@ -14,6 +15,7 @@ import { CommodityRepository } from '@/modules/commodities/commodity.repository'
 import { FarmAssessmentRepository } from '@/modules/farm-assessments/farm-assessment.repository';
 import { FarmRepository } from '@/modules/farms/farm.repository';
 import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
+import { INVENTORY_CODE_PREFIXES } from '@/shared/constants';
 import { prismaClient } from '@/shared/database';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
@@ -78,6 +80,8 @@ export class SupplyChainService {
     private readonly actorRepository: ActorRepository,
     @inject(CommodityRepository)
     private readonly commodityRepository: CommodityRepository,
+    @inject(InventoryCodeRepository)
+    private readonly inventoryCodeRepository: InventoryCodeRepository,
   ) {}
 
   /** Lists all supply chains with total count. */
@@ -104,14 +108,15 @@ export class SupplyChainService {
     return mapSupplyChainToOutput(record);
   }
 
-  /** Creates a supply chain with optional inline allocations. */
+  /** Creates a supply chain with a server-generated inventory code. */
   async createSupplyChain(input: ICreateSupplyChainInput): Promise<ISupplyChainOutput> {
-    const code = input.code.toUpperCase();
-    await this.assertCodeAvailable(code);
-
     if (input.commodityId) {
       await this.assertCommodityExists(input.commodityId);
     }
+
+    const code = await this.inventoryCodeRepository.allocateNextCode(
+      INVENTORY_CODE_PREFIXES.SUPPLY_CHAIN,
+    );
 
     const record = await this.supplyChainRepository.create({
       name: input.name,
@@ -137,7 +142,7 @@ export class SupplyChainService {
     return mapSupplyChainToOutput(created);
   }
 
-  /** Updates an existing supply chain. */
+  /** Updates an existing supply chain. Codes are immutable. */
   async updateSupplyChain(
     id: string,
     input: IUpdateSupplyChainInput,
@@ -148,19 +153,12 @@ export class SupplyChainService {
       throw new NotFoundError('Supply chain not found');
     }
 
-    const nextCode = input.code ? input.code.toUpperCase() : existing.code;
-
-    if (nextCode !== existing.code) {
-      await this.assertCodeAvailable(nextCode, id);
-    }
-
     if (input.commodityId) {
       await this.assertCommodityExists(input.commodityId);
     }
 
     const updated = await this.supplyChainRepository.updateById(id, {
       name: input.name,
-      code: input.code ? nextCode : undefined,
       description:
         input.description !== undefined ? input.description.trim() || null : undefined,
       status: input.status,
@@ -319,16 +317,6 @@ export class SupplyChainService {
       commodity,
       latestAssessmentByFarmId: latestAssessmentMap,
     };
-  }
-
-  private async assertCodeAvailable(code: string, excludeId?: string): Promise<void> {
-    const existing = await this.supplyChainRepository.findByCode(code);
-
-    if (existing && existing.id !== excludeId) {
-      throw new BadRequestError('Supply chain code already exists', {
-        issues: [{ path: 'code', message: 'Code must be unique' }],
-      });
-    }
   }
 
   private async assertCommodityExists(commodityId: string): Promise<void> {

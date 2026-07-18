@@ -14,7 +14,6 @@ export interface ICommodityOutput {
 /** Input for creating a commodity. */
 export interface ICreateCommodityInput {
   name: string;
-  code: string;
   unit: CommodityUnit;
   storedImageFilename?: string;
 }
@@ -22,7 +21,6 @@ export interface ICreateCommodityInput {
 /** Input for updating a commodity — at least one field required at route layer. */
 export interface IUpdateCommodityInput {
   name?: string;
-  code?: string;
   unit?: CommodityUnit;
   storedImageFilename?: string;
 }

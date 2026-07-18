@@ -307,3 +307,14 @@ model BatchAllocation {
   @@index([batchId])
   @@index([supplyChainId])
 }
+
+/// Atomic per-entity yearly sequence for inventory codes (PREFIX-YYYY-NNNN).
+model CodeSequence {
+  id        String   @id @default(cuid())
+  prefix    String
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([prefix, year])
+}

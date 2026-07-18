@@ -1,18 +1,8 @@
 import { z } from 'zod';
 
-import { FARM_CODE_PATTERN, FARM_STATUSES } from '@/shared/constants';
+import { FARM_STATUSES } from '@/shared/constants';
 
 const farmStatusSchema = z.enum(FARM_STATUSES);
-
-const farmCodeSchema = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .min(2)
-  .max(50)
-  .regex(FARM_CODE_PATTERN, {
-    message: 'Code must contain only uppercase letters, numbers, and underscores',
-  });
 
 const farmOwnerBodySchema = z.object({
   firstName: z.string().trim().max(100).default(''),
@@ -62,7 +52,6 @@ const updateFarmLocationBodySchema = z.object({
 export const createFarmBodySchema = z.object({
   body: z.object({
     name: z.string().trim().min(2).max(100),
-    code: farmCodeSchema,
     status: farmStatusSchema.optional(),
     owner: farmOwnerBodySchema.default({
       firstName: '',
@@ -87,7 +76,6 @@ export const updateFarmBodySchema = z.object({
   body: z
     .object({
       name: z.string().trim().min(2).max(100).optional(),
-      code: farmCodeSchema.optional(),
       status: farmStatusSchema.optional(),
       owner: updateFarmOwnerBodySchema.optional(),
       commodityIds: z.array(z.string().trim().min(1)).min(1).optional(),

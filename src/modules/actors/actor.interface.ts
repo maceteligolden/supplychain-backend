@@ -28,7 +28,6 @@ export interface IActorOutput {
 /** Input for creating an actor. */
 export interface ICreateActorInput {
   name: string;
-  code: string;
   type: ActorType;
   address: IActorAddressOutput;
   status: ActorStatus;
@@ -37,7 +36,6 @@ export interface ICreateActorInput {
 /** Input for updating an actor — at least one field required at route layer. */
 export interface IUpdateActorInput {
   name?: string;
-  code?: string;
   type?: ActorType;
   address?: Partial<IActorAddressOutput>;
   status?: ActorStatus;

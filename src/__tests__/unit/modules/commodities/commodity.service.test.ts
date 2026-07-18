@@ -3,12 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CommodityRepository } from '@/modules/commodities/commodity.repository';
 import { CommodityService } from '@/modules/commodities/commodity.service';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
 const mockDocument = {
   id: 'commodity-1',
   name: 'Cocoa',
-  code: 'COCOA',
+  code: 'COM-2026-0001',
   imageUrl: '',
   unit: 'KG' as const,
   createdAt: new Date('2025-01-10T08:00:00.000Z'),
@@ -17,6 +18,7 @@ const mockDocument = {
 
 describe('CommodityService', () => {
   let mockCommodityRepository: CommodityRepository;
+  let mockInventoryCodeRepository: InventoryCodeRepository;
   let commodityService: CommodityService;
 
   beforeEach(() => {
@@ -30,7 +32,14 @@ describe('CommodityService', () => {
       deleteById: vi.fn(),
     };
 
-    commodityService = new CommodityService(mockCommodityRepository);
+    mockInventoryCodeRepository = {
+      allocateNextCode: vi.fn(),
+    };
+
+    commodityService = new CommodityService(
+      mockCommodityRepository,
+      mockInventoryCodeRepository,
+    );
   });
 
   it('listCommodities returns mapped commodities and total', async () => {
@@ -41,7 +50,7 @@ describe('CommodityService', () => {
 
     expect(output.total).toBe(1);
     expect(output.commodities).toHaveLength(1);
-    expect(output.commodities[0]?.code).toBe('COCOA');
+    expect(output.commodities[0]?.code).toBe('COM-2026-0001');
   });
 
   it('getCommodityById returns commodity when found', async () => {
@@ -61,40 +70,29 @@ describe('CommodityService', () => {
     );
   });
 
-  it('createCommodity creates with normalized code and image URL', async () => {
-    vi.mocked(mockCommodityRepository.findByCode).mockResolvedValue(null);
+  it('createCommodity allocates a server inventory code', async () => {
+    vi.mocked(mockInventoryCodeRepository.allocateNextCode).mockResolvedValue(
+      'COM-2026-0001',
+    );
     vi.mocked(mockCommodityRepository.create).mockResolvedValue(mockDocument);
 
     const output = await commodityService.createCommodity({
       name: 'Cocoa',
-      code: 'cocoa',
       unit: 'KG',
     });
 
+    expect(mockInventoryCodeRepository.allocateNextCode).toHaveBeenCalledWith('COM');
     expect(mockCommodityRepository.create).toHaveBeenCalledWith({
       name: 'Cocoa',
-      code: 'COCOA',
+      code: 'COM-2026-0001',
       unit: 'KG',
       imageUrl: '',
     });
-    expect(output.code).toBe('COCOA');
-  });
-
-  it('createCommodity rejects duplicate code', async () => {
-    vi.mocked(mockCommodityRepository.findByCode).mockResolvedValue(mockDocument);
-
-    await expect(
-      commodityService.createCommodity({
-        name: 'Duplicate',
-        code: 'COCOA',
-        unit: 'KG',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(output.code).toBe('COM-2026-0001');
   });
 
   it('updateCommodity updates fields when commodity exists', async () => {
     vi.mocked(mockCommodityRepository.findById).mockResolvedValue(mockDocument);
-    vi.mocked(mockCommodityRepository.findByCode).mockResolvedValue(null);
     vi.mocked(mockCommodityRepository.updateById).mockResolvedValue({
       ...mockDocument,
       name: 'Premium Cocoa',
@@ -107,10 +105,17 @@ describe('CommodityService', () => {
     expect(output.name).toBe('Premium Cocoa');
     expect(mockCommodityRepository.updateById).toHaveBeenCalledWith(mockDocument.id, {
       name: 'Premium Cocoa',
-      code: undefined,
       unit: undefined,
       imageUrl: undefined,
     });
+  });
+
+  it('updateCommodity rejects empty payloads', async () => {
+    vi.mocked(mockCommodityRepository.findById).mockResolvedValue(mockDocument);
+
+    await expect(
+      commodityService.updateCommodity(mockDocument.id, {}),
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('deleteCommodity returns success payload', async () => {

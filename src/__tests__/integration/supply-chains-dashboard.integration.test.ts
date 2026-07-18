@@ -26,6 +26,8 @@ import {
   type ISupplyChainOutput,
   type ISupplyChainRecord,
 } from '@/modules/supply-chains';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
+import { InMemoryInventoryCodeRepository } from '@/__tests__/helpers/in-memory-inventory-code.repository';
 import { setupDependencyContainer } from '@/shared/container';
 import { ISuccessResponseOutput } from '@/shared/utils';
 
@@ -307,6 +309,9 @@ describe('Supply chains, events & dashboard API integration', () => {
     container.register(SupplyChainRepository, {
       useValue: inMemorySupplyChainRepository,
     });
+    container.register(InventoryCodeRepository, {
+      useValue: new InMemoryInventoryCodeRepository(),
+    });
     container.register(SupplyChainService, { useClass: SupplyChainService });
     container.register(ActorRepository, { useValue: inMemoryActorRepository });
     container.register(ActorService, { useClass: ActorService });
@@ -338,13 +343,12 @@ describe('Supply chains, events & dashboard API integration', () => {
     const app = createApp();
     const response = await request(app).post('/api/v1/supply-chains').send({
       name: 'Ghana Cocoa Export',
-      code: 'gh_cocoa_export',
       status: 'ACTIVE',
     });
     const body = response.body as ISuccessResponseOutput<ISupplyChainOutput>;
 
     expect(response.status).toBe(201);
-    expect(body.data.code).toBe('GH_COCOA_EXPORT');
+    expect(body.data.code).toMatch(/^SC-\d{4}-\d{4}$/);
   });
 
   it('POST /api/v1/supply-chains/:id/events creates a lifecycle event', async () => {
@@ -352,7 +356,6 @@ describe('Supply chains, events & dashboard API integration', () => {
 
     const chainResponse = await request(app).post('/api/v1/supply-chains').send({
       name: 'Ghana Cocoa Export',
-      code: 'GH_COCOA_EXPORT',
       status: 'ACTIVE',
     });
     const chain = chainResponse.body as ISuccessResponseOutput<ISupplyChainOutput>;
@@ -361,7 +364,6 @@ describe('Supply chains, events & dashboard API integration', () => {
       .post('/api/v1/actors')
       .send({
         name: 'Kumasi Collection Centre',
-        code: 'KUMASI_COLLECTION_CENTRE',
         type: 'COLLECTION_CENTRE',
         address: { city: 'Kumasi', region: 'Ashanti', country: 'Ghana' },
         status: 'ACTIVE',
@@ -396,7 +398,6 @@ describe('Supply chains, events & dashboard API integration', () => {
 
     await request(app).post('/api/v1/supply-chains').send({
       name: 'Ghana Cocoa Export',
-      code: 'GH_COCOA_EXPORT',
       status: 'ACTIVE',
     });
 
@@ -404,7 +405,6 @@ describe('Supply chains, events & dashboard API integration', () => {
       .post('/api/v1/actors')
       .send({
         name: 'Kumasi Collection Centre',
-        code: 'KUMASI_COLLECTION_CENTRE',
         type: 'COLLECTION_CENTRE',
         address: { city: 'Kumasi', region: 'Ashanti', country: 'Ghana' },
         status: 'ACTIVE',

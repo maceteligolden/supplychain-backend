@@ -5,6 +5,8 @@ import { IFarmAssessmentOutput } from '@/modules/farm-assessments/farm-assessmen
 import { FarmAssessmentService } from '@/modules/farm-assessments/farm-assessment.service';
 import { CommodityRepository } from '@/modules/commodities';
 import { FarmRepository } from '@/modules/farms';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
+import { INVENTORY_CODE_PREFIXES } from '@/shared/constants';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
 import {
@@ -18,7 +20,7 @@ import {
   IUpdateBatchInput,
 } from './batch.interface';
 import { BatchRepository } from './batch.repository';
-import { deriveBatchStatus, generateBatchNumber } from './batch.util';
+import { deriveBatchStatus } from './batch.util';
 
 const mapBatchToOutput = (record: IBatchRecord): IBatchOutput => ({
   id: record.id,
@@ -81,6 +83,8 @@ export class BatchService {
     private readonly farmBoundaryRepository: FarmBoundaryRepository,
     @inject(FarmAssessmentService)
     private readonly farmAssessmentService: FarmAssessmentService,
+    @inject(InventoryCodeRepository)
+    private readonly inventoryCodeRepository: InventoryCodeRepository,
   ) {}
 
   /** Lists batches for a farm with total count. */
@@ -160,12 +164,9 @@ export class BatchService {
       });
     }
 
-    const batchNumber = await this.resolveBatchNumber({
-      farmId: input.farmId,
-      farmCode: farm.code,
-      harvestDate: input.harvestDate,
-      providedBatchNumber: input.batchNumber,
-    });
+    const batchNumber = await this.inventoryCodeRepository.allocateNextCode(
+      INVENTORY_CODE_PREFIXES.BATCH,
+    );
 
     const record = await this.batchRepository.create({
       batchNumber,
@@ -255,35 +256,5 @@ export class BatchService {
     }
 
     return { success: true, id };
-  }
-
-  private async resolveBatchNumber(input: {
-    farmId: string;
-    farmCode: string;
-    harvestDate: string;
-    providedBatchNumber?: string;
-  }): Promise<string> {
-    if (input.providedBatchNumber) {
-      const normalized = input.providedBatchNumber.toUpperCase();
-      const taken = await this.batchRepository.findByBatchNumber(normalized);
-
-      if (taken) {
-        throw new BadRequestError('Batch number already exists', {
-          issues: [{ path: 'batchNumber', message: 'Batch number must be unique' }],
-        });
-      }
-
-      return normalized;
-    }
-
-    const existingBatchNumbers = await this.batchRepository.findBatchNumbersByFarmId(
-      input.farmId,
-    );
-
-    return generateBatchNumber({
-      farmCode: input.farmCode,
-      harvestDate: input.harvestDate,
-      existingBatchNumbers,
-    });
   }
 }

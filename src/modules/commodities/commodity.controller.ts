@@ -34,7 +34,6 @@ export class CommodityController {
     const body = request.body as ICreateCommodityInput;
     const output = await this.commodityService.createCommodity({
       name: body.name,
-      code: body.code,
       unit: body.unit,
       storedImageFilename: request.file?.filename,
     });
@@ -47,7 +46,6 @@ export class CommodityController {
     const body = request.body as IUpdateCommodityInput;
     const output = await this.commodityService.updateCommodity(id, {
       name: body.name,
-      code: body.code,
       unit: body.unit,
       storedImageFilename: request.file?.filename,
     });

@@ -1,5 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
+import { INVENTORY_CODE_PREFIXES } from '@/shared/constants';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
 import {
@@ -21,6 +23,8 @@ export class CommodityService {
   constructor(
     @inject(CommodityRepository)
     private readonly commodityRepository: CommodityRepository,
+    @inject(InventoryCodeRepository)
+    private readonly inventoryCodeRepository: InventoryCodeRepository,
   ) {}
 
   /** Lists all commodities with total count. */
@@ -47,10 +51,11 @@ export class CommodityService {
     return mapCommodityToOutput(document);
   }
 
-  /** Creates a commodity with a unique code. */
+  /** Creates a commodity with a server-generated inventory code. */
   async createCommodity(input: ICreateCommodityInput): Promise<ICommodityOutput> {
-    const code = input.code.toUpperCase();
-    await this.assertCodeAvailable(code);
+    const code = await this.inventoryCodeRepository.allocateNextCode(
+      INVENTORY_CODE_PREFIXES.COMMODITY,
+    );
 
     const document = await this.commodityRepository.create({
       name: input.name,
@@ -64,7 +69,7 @@ export class CommodityService {
     return mapCommodityToOutput(document);
   }
 
-  /** Updates an existing commodity. */
+  /** Updates an existing commodity. Codes are immutable. */
   async updateCommodity(
     id: string,
     input: IUpdateCommodityInput,
@@ -75,18 +80,11 @@ export class CommodityService {
       throw new NotFoundError('Commodity not found');
     }
 
-    const hasFieldUpdate =
-      input.name !== undefined || input.code !== undefined || input.unit !== undefined;
+    const hasFieldUpdate = input.name !== undefined || input.unit !== undefined;
     const hasImageUpdate = Boolean(input.storedImageFilename);
 
     if (!hasFieldUpdate && !hasImageUpdate) {
       throw new BadRequestError('At least one field is required');
-    }
-
-    const nextCode = input.code ? input.code.toUpperCase() : existing.code;
-
-    if (nextCode !== existing.code) {
-      await this.assertCodeAvailable(nextCode, id);
     }
 
     if (input.storedImageFilename && existing.imageUrl) {
@@ -99,7 +97,6 @@ export class CommodityService {
 
     const updated = await this.commodityRepository.updateById(id, {
       name: input.name,
-      code: input.code ? nextCode : undefined,
       unit: input.unit,
       imageUrl: nextImageUrl,
     });
@@ -130,15 +127,5 @@ export class CommodityService {
     }
 
     return { success: true, id };
-  }
-
-  private async assertCodeAvailable(code: string, excludeId?: string): Promise<void> {
-    const existing = await this.commodityRepository.findByCode(code);
-
-    if (existing && existing.id !== excludeId) {
-      throw new BadRequestError('Commodity code already exists', {
-        issues: [{ path: 'code', message: 'Code must be unique' }],
-      });
-    }
   }
 }

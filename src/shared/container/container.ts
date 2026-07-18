@@ -43,6 +43,7 @@ import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repo
 import { SupplyChainService } from '@/modules/supply-chains/supply-chain.service';
 import { HealthController } from '@/modules/health/health.controller';
 import { HealthService } from '@/modules/health/health.service';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
 
 /**
  * Registers application dependencies with tsyringe.
@@ -56,6 +57,8 @@ export const setupDependencyContainer = (): void => {
   container.register(AdminAuthService, { useClass: AdminAuthService });
   container.register(AuthController, { useClass: AuthController });
   container.register(AuthMiddleware, { useClass: AuthMiddleware });
+
+  container.register(InventoryCodeRepository, { useClass: InventoryCodeRepository });
 
   container.register(CommodityRepository, { useClass: CommodityRepository });
   container.register(CommodityService, { useClass: CommodityService });

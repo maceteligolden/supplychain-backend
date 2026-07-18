@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActorRepository } from '@/modules/actors/actor.repository';
 import { ActorService } from '@/modules/actors/actor.service';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
 import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
 import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
@@ -10,7 +11,7 @@ import { BadRequestError, NotFoundError } from '@/shared/errors';
 const mockRecord = {
   id: 'actor-1',
   name: 'Kumasi Collection Centre',
-  code: 'KUMASI_COLLECTION_CENTRE',
+  code: 'ACT-2026-0001',
   type: 'COLLECTION_CENTRE' as const,
   addressLine1: 'Plot 12, Industrial Area',
   addressCity: 'Kumasi',
@@ -25,6 +26,7 @@ describe('ActorService', () => {
   let mockActorRepository: ActorRepository;
   let mockSupplyChainEventRepository: SupplyChainEventRepository;
   let mockSupplyChainRepository: SupplyChainRepository;
+  let mockInventoryCodeRepository: InventoryCodeRepository;
   let actorService: ActorService;
 
   beforeEach(() => {
@@ -47,10 +49,15 @@ describe('ActorService', () => {
       findById: vi.fn(),
     } as unknown as SupplyChainRepository;
 
+    mockInventoryCodeRepository = {
+      allocateNextCode: vi.fn().mockResolvedValue('ACT-2026-0001'),
+    };
+
     actorService = new ActorService(
       mockActorRepository,
       mockSupplyChainEventRepository,
       mockSupplyChainRepository,
+      mockInventoryCodeRepository,
     );
   });
 
@@ -62,7 +69,7 @@ describe('ActorService', () => {
 
     expect(output.total).toBe(1);
     expect(output.actors).toHaveLength(1);
-    expect(output.actors[0]?.code).toBe('KUMASI_COLLECTION_CENTRE');
+    expect(output.actors[0]?.code).toBe('ACT-2026-0001');
   });
 
   it('getActorById returns actor when found', async () => {
@@ -92,13 +99,11 @@ describe('ActorService', () => {
     expect(output.stats.eventCount).toBe(0);
   });
 
-  it('createActor creates with normalized code', async () => {
-    vi.mocked(mockActorRepository.findByCode).mockResolvedValue(null);
+  it('createActor allocates a server inventory code', async () => {
     vi.mocked(mockActorRepository.create).mockResolvedValue(mockRecord);
 
     const output = await actorService.createActor({
       name: 'Kumasi Collection Centre',
-      code: 'kumasi_collection_centre',
       type: 'COLLECTION_CENTRE',
       address: {
         city: 'Kumasi',
@@ -108,28 +113,11 @@ describe('ActorService', () => {
       status: 'ACTIVE',
     });
 
+    expect(mockInventoryCodeRepository.allocateNextCode).toHaveBeenCalledWith('ACT');
     expect(mockActorRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'KUMASI_COLLECTION_CENTRE' }),
+      expect.objectContaining({ code: 'ACT-2026-0001' }),
     );
-    expect(output.code).toBe('KUMASI_COLLECTION_CENTRE');
-  });
-
-  it('createActor rejects duplicate code', async () => {
-    vi.mocked(mockActorRepository.findByCode).mockResolvedValue(mockRecord);
-
-    await expect(
-      actorService.createActor({
-        name: 'Duplicate',
-        code: 'KUMASI_COLLECTION_CENTRE',
-        type: 'PROCESSOR',
-        address: {
-          city: 'Accra',
-          region: 'Greater Accra',
-          country: 'Ghana',
-        },
-        status: 'ACTIVE',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(output.code).toBe('ACT-2026-0001');
   });
 
   it('deleteActor blocks when referenced by events', async () => {

@@ -49,6 +49,11 @@ export {
   type SupplyChainStatus,
 } from './supply-chain.constants';
 export {
+  INVENTORY_CODE_PREFIXES,
+  INVENTORY_CODE_PATTERN,
+  type InventoryCodePrefix,
+} from './inventory-code.constants';
+export {
   SUPPLY_CHAIN_EVENT_TYPES,
   getSupplyChainEventTypeOrder,
   type SupplyChainEventType,

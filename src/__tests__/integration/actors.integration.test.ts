@@ -6,10 +6,12 @@ import { container } from 'tsyringe';
 import { createApp } from '@/app';
 import { AuthMiddleware } from '@/modules/auth/auth.middleware';
 import { ActorRepository, ActorService, type IActorRecord } from '@/modules/actors';
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
 import { SupplyChainEventRepository } from '@/modules/supply-chain-events/supply-chain-event.repository';
 import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
+import { InMemoryInventoryCodeRepository } from '@/__tests__/helpers/in-memory-inventory-code.repository';
 import { setupDependencyContainer } from '@/shared/container';
-import { ISuccessResponseOutput, IErrorResponseOutput } from '@/shared/utils';
+import { ISuccessResponseOutput } from '@/shared/utils';
 import type {
   IActorInvolvementOutput,
   IActorOutput,
@@ -142,6 +144,9 @@ describe('Actors API integration', () => {
         findById: () => Promise.resolve(null),
       } as unknown as SupplyChainRepository,
     });
+    container.register(InventoryCodeRepository, {
+      useValue: new InMemoryInventoryCodeRepository(),
+    });
     container.register(ActorService, { useClass: ActorService });
 
     container.register(AuthMiddleware, {
@@ -173,7 +178,6 @@ describe('Actors API integration', () => {
       .post('/api/v1/actors')
       .send({
         name: 'Kumasi Collection Centre',
-        code: 'kumasi_collection_centre',
         type: 'COLLECTION_CENTRE',
         address: {
           city: 'Kumasi',
@@ -185,36 +189,36 @@ describe('Actors API integration', () => {
     const body = response.body as ISuccessResponseOutput<IActorOutput>;
 
     expect(response.status).toBe(201);
-    expect(body.data.code).toBe('KUMASI_COLLECTION_CENTRE');
+    expect(body.data.code).toMatch(/^ACT-\d{4}-\d{4}$/);
     expect(body.data.address.city).toBe('Kumasi');
   });
 
-  it('POST /api/v1/actors rejects duplicate code', async () => {
+  it('POST /api/v1/actors allocates unique inventory codes', async () => {
     const app = createApp();
 
-    await request(app)
+    const first = await request(app)
       .post('/api/v1/actors')
       .send({
         name: 'Kumasi Collection Centre',
-        code: 'KUMASI_COLLECTION_CENTRE',
         type: 'COLLECTION_CENTRE',
         address: { city: 'Kumasi', region: 'Ashanti', country: 'Ghana' },
         status: 'ACTIVE',
       });
-
-    const duplicateResponse = await request(app)
+    const second = await request(app)
       .post('/api/v1/actors')
       .send({
         name: 'Another Centre',
-        code: 'KUMASI_COLLECTION_CENTRE',
         type: 'PROCESSOR',
         address: { city: 'Accra', region: 'Greater Accra', country: 'Ghana' },
         status: 'ACTIVE',
       });
 
-    expect(duplicateResponse.status).toBe(400);
-    const duplicateBody = duplicateResponse.body as IErrorResponseOutput;
-    expect(duplicateBody.message).toBe('Actor code already exists');
+    const firstBody = first.body as ISuccessResponseOutput<IActorOutput>;
+    const secondBody = second.body as ISuccessResponseOutput<IActorOutput>;
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(firstBody.data.code).not.toBe(secondBody.data.code);
   });
 
   it('GET /api/v1/actors/:id/involvement returns empty involvement', async () => {
@@ -223,7 +227,6 @@ describe('Actors API integration', () => {
       .post('/api/v1/actors')
       .send({
         name: 'Tema Export Terminal',
-        code: 'TEMA_EXPORT_TERMINAL',
         type: 'EXPORTER',
         address: { city: 'Tema', region: 'Greater Accra', country: 'Ghana' },
         status: 'ACTIVE',
@@ -237,7 +240,7 @@ describe('Actors API integration', () => {
       involvementResponse.body as ISuccessResponseOutput<IActorInvolvementOutput>;
 
     expect(involvementResponse.status).toBe(200);
-    expect(body.data.actor.code).toBe('TEMA_EXPORT_TERMINAL');
+    expect(body.data.actor.code).toMatch(/^ACT-\d{4}-\d{4}$/);
     expect(body.data.events).toEqual([]);
     expect(body.data.stats.eventCount).toBe(0);
   });
@@ -248,7 +251,6 @@ describe('Actors API integration', () => {
       .post('/api/v1/actors')
       .send({
         name: 'Accra Cocoa Processing Ltd',
-        code: 'ACCRA_COCOA_PROCESSING_LTD',
         type: 'PROCESSOR',
         address: { city: 'Accra', region: 'Greater Accra', country: 'Ghana' },
         status: 'ACTIVE',

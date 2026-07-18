@@ -36,7 +36,6 @@ export interface IFarmOutput {
 /** Input for creating a farm. */
 export interface ICreateFarmInput {
   name: string;
-  code: string;
   status?: FarmStatus;
   owner: IFarmOwnerOutput;
   commodityIds: string[];
@@ -49,7 +48,6 @@ export interface ICreateFarmInput {
 /** Input for updating a farm — at least one field required at route layer. */
 export interface IUpdateFarmInput {
   name?: string;
-  code?: string;
   status?: FarmStatus;
   owner?: Partial<IFarmOwnerOutput>;
   commodityIds?: string[];

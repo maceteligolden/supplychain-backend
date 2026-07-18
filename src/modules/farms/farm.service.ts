@@ -1,5 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 
+import { InventoryCodeRepository } from '@/modules/inventory-codes';
+import { INVENTORY_CODE_PREFIXES } from '@/shared/constants';
 import { prismaClient } from '@/shared/database';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 
@@ -20,6 +22,8 @@ import { FarmRepository } from './farm.repository';
 export class FarmService {
   constructor(
     @inject(FarmRepository) private readonly farmRepository: FarmRepository,
+    @inject(InventoryCodeRepository)
+    private readonly inventoryCodeRepository: InventoryCodeRepository,
   ) {}
 
   /** Lists all farms with total count. */
@@ -46,11 +50,12 @@ export class FarmService {
     return mapFarmToOutput(record);
   }
 
-  /** Creates a farm with a unique code and valid commodity links. */
+  /** Creates a farm with a server-generated inventory code and valid commodity links. */
   async createFarm(input: ICreateFarmInput): Promise<IFarmOutput> {
-    const code = input.code.toUpperCase();
-    await this.assertCodeAvailable(code);
     await this.assertCommodityIdsExist(input.commodityIds);
+    const code = await this.inventoryCodeRepository.allocateNextCode(
+      INVENTORY_CODE_PREFIXES.FARM,
+    );
 
     const record = await this.farmRepository.create({
       name: input.name,
@@ -74,18 +79,12 @@ export class FarmService {
     return mapFarmToOutput(created);
   }
 
-  /** Updates an existing farm. */
+  /** Updates an existing farm. Codes are immutable. */
   async updateFarm(id: string, input: IUpdateFarmInput): Promise<IFarmOutput> {
     const existing = await this.farmRepository.findById(id);
 
     if (!existing) {
       throw new NotFoundError('Farm not found');
-    }
-
-    const nextCode = input.code ? input.code.toUpperCase() : existing.code;
-
-    if (nextCode !== existing.code) {
-      await this.assertCodeAvailable(nextCode, id);
     }
 
     if (input.commodityIds) {
@@ -131,7 +130,6 @@ export class FarmService {
 
     const updated = await this.farmRepository.updateById(id, {
       name: input.name,
-      code: input.code ? nextCode : undefined,
       status: input.status,
       owner: nextOwner,
       location: nextLocation,
@@ -178,16 +176,6 @@ export class FarmService {
     }
 
     return { success: true, id };
-  }
-
-  private async assertCodeAvailable(code: string, excludeId?: string): Promise<void> {
-    const existing = await this.farmRepository.findByCode(code);
-
-    if (existing && existing.id !== excludeId) {
-      throw new BadRequestError('Farm code already exists', {
-        issues: [{ path: 'code', message: 'Code must be unique' }],
-      });
-    }
   }
 
   private async assertCommodityIdsExist(commodityIds: string[]): Promise<void> {

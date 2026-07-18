@@ -9,7 +9,7 @@ Farm management, harvest batches, and batch-to-supply-chain allocations for the 
 ## Requirements
 
 - Super Admin only (auth required on all routes)
-- **Farms:** full CRUD; unique uppercase `code`; M2M commodities via `FarmCommodity`; nested `owner` and `location` in API
+- **Farms:** full CRUD; immutable server-generated `code` (`FARM-YYYY-NNNN`); M2M commodities via `FarmCommodity`; nested `owner` and `location` in API
 - **Batches:** list by `farmId` (required query); create returns `{ batch, assessment: null, steps }` with assessment step skipped
 - **Allocations:** list by `farmId` **or** `supplyChainId` (mutually exclusive); quantity capped by batch remaining; batch status derived after writes
 - **Supply chains:** minimal model + seed only (no CRUD routes yet) for allocation FK validation
@@ -54,7 +54,7 @@ Seeded records `GH_COCOA_EXPORT` and `SD_GUM_EXPORT` with optional `commodityId`
 
 ## Business rules
 
-- Batch number pattern: `BATCH_{FARM_CODE}_{YYYY}_{seq}` (auto-generated or custom unique)
+- Batch number pattern: `BAT-YYYY-NNNN` (server-generated, immutable)
 - Batch quantity on update must be ≥ total allocated
 - Allocation quantity must not exceed batch remaining (batch qty − other allocations)
 - Supply chain must exist and be `ACTIVE`
