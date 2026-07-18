@@ -33,10 +33,17 @@ describe('buildAssessmentMapContext', () => {
     });
 
     expect(context.legend).toHaveLength(4);
-    expect(context.legend[0]?.percent).toBe(100);
-    expect(context.legend[1]?.percent).toBe(16);
-    expect(context.tileLayers.length).toBeGreaterThanOrEqual(3);
+    expect(context.legend[0]?.category).toBe('Tree cover loss');
+    expect(context.legend[0]?.percent).toBe(16);
+    expect(context.legend[3]?.category).toBe('Non-forest');
+    expect(context.tileLayers).toHaveLength(3);
+    expect(context.tileLayers.map((layer) => layer.id)).toEqual([
+      'tree_cover_density',
+      'tree_cover_loss',
+      'tree_cover_gain',
+    ]);
     expect(context.whispRiskPcrop).toBe('Medium');
     expect(context.bbox).toHaveLength(4);
+    expect(context.plots).toHaveLength(1);
   });
 });

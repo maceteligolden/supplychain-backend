@@ -27,6 +27,7 @@ const mapAssessmentToOutput = (
   assessedAt: record.assessedAt?.toISOString() ?? null,
   boundaryAreaHectares: record.boundaryAreaHectares,
   status: record.status,
+  source: record.source,
   errorMessage: record.errorMessage ?? undefined,
   createdAt: record.createdAt.toISOString(),
   updatedAt: record.updatedAt.toISOString(),
@@ -186,10 +187,11 @@ export class FarmAssessmentService {
 
     return buildAssessmentMapContext({
       boundary: boundary.coordinates,
+      plots: boundary.plots,
       boundaryAreaHectares:
         assessment.boundaryAreaHectares ??
         boundary.areaHectares ??
-        calculatePolygonAreaHectares(boundary.coordinates),
+        calculatePolygonAreaHectares(boundary.plots),
       analysis: assessment.analysis,
       providerMetadata: assessment.providerMetadata,
     });

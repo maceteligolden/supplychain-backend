@@ -36,7 +36,7 @@ class InMemoryFarmRepository extends FarmRepository {
     return Promise.resolve(0);
   }
 
-  override findAll() {
+  override findAll(): ReturnType<FarmRepository['findAll']> {
     return Promise.resolve([]);
   }
 }
@@ -46,19 +46,19 @@ class InMemoryBatchRepository extends BatchRepository {
     return Promise.resolve(0);
   }
 
-  override findAll() {
+  override findAll(): ReturnType<BatchRepository['findAll']> {
     return Promise.resolve([]);
   }
 }
 
 class InMemoryBatchAllocationRepository extends BatchAllocationRepository {
-  override findAll() {
+  override findAll(): ReturnType<BatchAllocationRepository['findAll']> {
     return Promise.resolve([]);
   }
 }
 
 class InMemoryCommodityRepository extends CommodityRepository {
-  override findAll() {
+  override findAll(): ReturnType<CommodityRepository['findAll']> {
     return Promise.resolve([]);
   }
 }

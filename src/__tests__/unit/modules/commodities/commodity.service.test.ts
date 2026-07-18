@@ -3,8 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CommodityRepository } from '@/modules/commodities/commodity.repository';
 import { CommodityService } from '@/modules/commodities/commodity.service';
+import { deleteCommodityImageFile } from '@/modules/commodities/commodity.util';
 import { InventoryCodeRepository } from '@/modules/inventory-codes';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
+
+vi.mock('@/modules/commodities/commodity.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/modules/commodities/commodity.util')>();
+  return {
+    ...actual,
+    deleteCommodityImageFile: vi.fn(),
+  };
+});
 
 const mockDocument = {
   id: 'commodity-1',
@@ -22,6 +32,8 @@ describe('CommodityService', () => {
   let commodityService: CommodityService;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+
     mockCommodityRepository = {
       findAll: vi.fn(),
       countAll: vi.fn(),
@@ -29,6 +41,7 @@ describe('CommodityService', () => {
       findByCode: vi.fn(),
       create: vi.fn(),
       updateById: vi.fn(),
+      isReferencedByFarmsOrBatches: vi.fn(),
       deleteById: vi.fn(),
     };
 
@@ -118,8 +131,11 @@ describe('CommodityService', () => {
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 
-  it('deleteCommodity returns success payload', async () => {
+  it('deleteCommodity returns success payload for unreferenced commodity', async () => {
     vi.mocked(mockCommodityRepository.findById).mockResolvedValue(mockDocument);
+    vi.mocked(mockCommodityRepository.isReferencedByFarmsOrBatches).mockResolvedValue(
+      false,
+    );
     vi.mocked(mockCommodityRepository.deleteById).mockResolvedValue(true);
 
     const output = await commodityService.deleteCommodity(mockDocument.id);
@@ -133,5 +149,64 @@ describe('CommodityService', () => {
     await expect(commodityService.deleteCommodity('missing')).rejects.toBeInstanceOf(
       NotFoundError,
     );
+  });
+
+  it('deleteCommodity rejects referenced commodity with BadRequestError', async () => {
+    vi.mocked(mockCommodityRepository.findById).mockResolvedValue(mockDocument);
+    vi.mocked(mockCommodityRepository.isReferencedByFarmsOrBatches).mockResolvedValue(
+      true,
+    );
+
+    await expect(
+      commodityService.deleteCommodity(mockDocument.id),
+    ).rejects.toMatchObject({
+      constructor: BadRequestError,
+      message: 'Cannot delete commodity referenced by farms or batches',
+    });
+    expect(mockCommodityRepository.deleteById).not.toHaveBeenCalled();
+    expect(deleteCommodityImageFile).not.toHaveBeenCalled();
+  });
+
+  it('deleteCommodity removes the image file only after a successful DB delete', async () => {
+    const documentWithImage = {
+      ...mockDocument,
+      imageUrl: '/uploads/commodities/cocoa.png',
+    };
+    const callOrder: string[] = [];
+
+    vi.mocked(mockCommodityRepository.findById).mockResolvedValue(documentWithImage);
+    vi.mocked(mockCommodityRepository.isReferencedByFarmsOrBatches).mockResolvedValue(
+      false,
+    );
+    vi.mocked(mockCommodityRepository.deleteById).mockImplementation(() => {
+      callOrder.push('deleteById');
+      return Promise.resolve(true);
+    });
+    vi.mocked(deleteCommodityImageFile).mockImplementation(() => {
+      callOrder.push('deleteImage');
+    });
+
+    await commodityService.deleteCommodity(documentWithImage.id);
+
+    expect(callOrder).toEqual(['deleteById', 'deleteImage']);
+    expect(deleteCommodityImageFile).toHaveBeenCalledWith(documentWithImage.imageUrl);
+  });
+
+  it('deleteCommodity keeps the image file when the DB delete fails', async () => {
+    const documentWithImage = {
+      ...mockDocument,
+      imageUrl: '/uploads/commodities/cocoa.png',
+    };
+
+    vi.mocked(mockCommodityRepository.findById).mockResolvedValue(documentWithImage);
+    vi.mocked(mockCommodityRepository.isReferencedByFarmsOrBatches).mockResolvedValue(
+      false,
+    );
+    vi.mocked(mockCommodityRepository.deleteById).mockResolvedValue(false);
+
+    await expect(
+      commodityService.deleteCommodity(documentWithImage.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(deleteCommodityImageFile).not.toHaveBeenCalled();
   });
 });

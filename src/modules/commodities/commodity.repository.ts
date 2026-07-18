@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { injectable } from 'tsyringe';
 
 import { prismaClient } from '@/shared/database';
@@ -79,13 +80,34 @@ export class CommodityRepository {
     }
   }
 
-  /** Deletes a commodity by id. Returns true when a row was removed. */
+  /** Returns true when the commodity is referenced by farm links or batches. */
+  async isReferencedByFarmsOrBatches(id: string): Promise<boolean> {
+    const [farmLinkCount, batchCount] = await Promise.all([
+      prismaClient.farmCommodity.count({ where: { commodityId: id } }),
+      prismaClient.batch.count({ where: { commodityId: id } }),
+    ]);
+
+    return farmLinkCount > 0 || batchCount > 0;
+  }
+
+  /**
+   * Deletes a commodity by id. Returns true when a row was removed and false
+   * when the row does not exist (Prisma P2025). Other failures — including
+   * foreign-key restrictions — are rethrown so callers do not mistake them
+   * for a missing row.
+   */
   async deleteById(id: string): Promise<boolean> {
     try {
       await prismaClient.commodity.delete({ where: { id } });
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        return false;
+      }
+      throw error;
     }
   }
 }

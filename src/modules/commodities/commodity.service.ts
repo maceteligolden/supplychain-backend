@@ -108,7 +108,7 @@ export class CommodityService {
     return mapCommodityToOutput(updated);
   }
 
-  /** Deletes a commodity by id. */
+  /** Deletes a commodity by id when not referenced by farms or batches. */
   async deleteCommodity(id: string): Promise<IDeleteCommodityOutput> {
     const existing = await this.commodityRepository.findById(id);
 
@@ -116,14 +116,23 @@ export class CommodityService {
       throw new NotFoundError('Commodity not found');
     }
 
-    if (existing.imageUrl) {
-      deleteCommodityImageFile(existing.imageUrl);
+    const isReferenced =
+      await this.commodityRepository.isReferencedByFarmsOrBatches(id);
+
+    if (isReferenced) {
+      throw new BadRequestError(
+        'Cannot delete commodity referenced by farms or batches',
+      );
     }
 
     const deleted = await this.commodityRepository.deleteById(id);
 
     if (!deleted) {
       throw new NotFoundError('Commodity not found');
+    }
+
+    if (existing.imageUrl) {
+      deleteCommodityImageFile(existing.imageUrl);
     }
 
     return { success: true, id };

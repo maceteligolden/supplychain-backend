@@ -48,6 +48,8 @@ export type IFarmAssessmentMapTileLayer = {
 
 export type IFarmAssessmentMapContext = {
   boundary: GeoCoordinate[];
+  /** All plot rings for multi-plot farms. */
+  plots: GeoCoordinate[][];
   bbox: [number, number, number, number];
   legend: IFarmAssessmentMapLegendItem[];
   tileLayers: IFarmAssessmentMapTileLayer[];
@@ -65,6 +67,8 @@ export type IFarmAssessmentOutput = {
   assessedAt: string | null;
   boundaryAreaHectares: number | null;
   status: FarmAssessmentStatus;
+  /** Data provenance: live providers vs deterministic demo fallback. */
+  source: FarmAssessmentSource;
   errorMessage?: string;
   createdAt: string;
   updatedAt: string;

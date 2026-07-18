@@ -5,6 +5,7 @@ import { NominatimClient } from '@/shared/integrations/nominatim.client';
 import { BadRequestError, NotFoundError } from '@/shared/errors';
 import {
   calculatePolygonAreaHectares,
+  normalizeBoundaryPlots,
   polygonCentroid,
 } from '@/shared/utils/polygon.util';
 
@@ -22,6 +23,7 @@ import { FarmAssessmentRepository } from '@/modules/farm-assessments/farm-assess
 const mapBoundaryToOutput = (record: IFarmBoundaryRecord): IFarmBoundaryOutput => ({
   farmId: record.farmId,
   coordinates: record.coordinates,
+  plots: record.plots,
   areaHectares: record.areaHectares,
   createdAt: record.createdAt.toISOString(),
   updatedAt: record.updatedAt.toISOString(),
@@ -52,7 +54,7 @@ export class FarmBoundaryService {
     };
   }
 
-  /** Saves or replaces a farm boundary polygon. */
+  /** Saves or replaces a farm boundary (single or multi-plot). */
   async upsertBoundary(
     farmId: string,
     input: IUpsertFarmBoundaryInput,
@@ -63,16 +65,22 @@ export class FarmBoundaryService {
       throw new NotFoundError('Farm not found');
     }
 
-    const areaHectares = calculatePolygonAreaHectares(input.coordinates);
+    const plots = normalizeBoundaryPlots(input.coordinates ?? [], input.plots);
+
+    if (plots.length === 0) {
+      throw new BadRequestError('Provide coordinates or plots for the farm boundary');
+    }
+
+    const areaHectares = calculatePolygonAreaHectares(plots);
     const existing = await this.farmBoundaryRepository.findByFarmId(farmId);
 
     const record = await this.farmBoundaryRepository.upsert({
       farmId,
-      coordinates: input.coordinates,
+      plots,
       areaHectares,
     });
 
-    const centroid = polygonCentroid(input.coordinates);
+    const centroid = polygonCentroid(plots);
     const nextStatus =
       !existing && farm.status === 'DRAFT' ? ('MAPPED' as const) : farm.status;
 
@@ -127,7 +135,7 @@ export class FarmBoundaryService {
     return { success: true, farmId };
   }
 
-  /** Geocodes a farm address for map centering. */
+  /** Geocodes a farm address for map centering and persists coordinates. */
   async geocodeFarm(farmId: string): Promise<IFarmGeocodeOutput> {
     const farm = await this.farmRepository.findById(farmId);
 
@@ -146,7 +154,7 @@ export class FarmBoundaryService {
     const result = await this.nominatimClient.geocodeFarmAddress({
       city: farm.city,
       region: farm.region,
-      country: farm.country,
+      country: farm.country || 'Nigeria',
     });
 
     if (!result) {

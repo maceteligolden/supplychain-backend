@@ -84,7 +84,7 @@ export class GfwClient {
   /** Analyzes tree cover metrics for a farm polygon. */
   async analyzePolygon(input: {
     farmId: string;
-    geoJson: GeoJSON.Polygon;
+    geoJson: GeoJSON.Polygon | GeoJSON.MultiPolygon;
     coordinates: GeoCoordinate[];
   }): Promise<GfwAnalysisResult> {
     if (!ENV.GFW_API_KEY) {
@@ -159,7 +159,9 @@ export class GfwClient {
     }
   }
 
-  private async createGeostore(geoJson: GeoJSON.Polygon): Promise<string | null> {
+  private async createGeostore(
+    geoJson: GeoJSON.Polygon | GeoJSON.MultiPolygon,
+  ): Promise<string | null> {
     const geostoreResponse = await fetch(`${GFW_BASE_URL}/v1/geostore`, {
       method: 'POST',
       headers: {

@@ -144,7 +144,7 @@ export class WhispClient {
   /** Analyzes a farm polygon via WHISP async API or deterministic fallback. */
   async analyzePolygon(input: {
     farmId: string;
-    geoJson: GeoJSON.Polygon;
+    geoJson: GeoJSON.Polygon | GeoJSON.MultiPolygon;
     coordinates: GeoCoordinate[];
   }): Promise<WhispAnalysisResult> {
     if (!ENV.WHISP_API_KEY) {

@@ -8,17 +8,33 @@ export type NominatimGeocodeResult = {
   displayName: string;
 };
 
+export type NominatimSearchOptions = {
+  /** ISO 3166-1 alpha-2 country codes, comma-separated (e.g. "ng"). */
+  countrycodes?: string;
+  /** Max results (1–10). */
+  limit?: number;
+};
+
 /**
  * NominatimClient geocodes addresses via OpenStreetMap Nominatim (backend-only).
  */
 @injectable()
 export class NominatimClient {
-  /** Forward-geocodes a free-text query. */
-  async geocodeQuery(query: string): Promise<NominatimGeocodeResult | null> {
+  /** Forward-geocodes a free-text query; returns multiple suggestions. */
+  async searchQuery(
+    query: string,
+    options: NominatimSearchOptions = {},
+  ): Promise<NominatimGeocodeResult[]> {
+    const limit = Math.min(Math.max(options.limit ?? 5, 1), 10);
     const url = new URL('https://nominatim.openstreetmap.org/search');
     url.searchParams.set('q', query);
     url.searchParams.set('format', 'json');
-    url.searchParams.set('limit', '1');
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('addressdetails', '0');
+
+    if (options.countrycodes) {
+      url.searchParams.set('countrycodes', options.countrycodes);
+    }
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -28,7 +44,7 @@ export class NominatimClient {
     });
 
     if (!response.ok) {
-      return null;
+      return [];
     }
 
     const results = (await response.json()) as Array<{
@@ -37,26 +53,37 @@ export class NominatimClient {
       display_name: string;
     }>;
 
-    const first = results[0];
-
-    if (!first) {
-      return null;
-    }
-
-    return {
-      latitude: Number.parseFloat(first.lat),
-      longitude: Number.parseFloat(first.lon),
-      displayName: first.display_name,
-    };
+    return results.map((item) => ({
+      latitude: Number.parseFloat(item.lat),
+      longitude: Number.parseFloat(item.lon),
+      displayName: item.display_name,
+    }));
   }
 
-  /** Geocodes structured farm location fields. */
+  /** Forward-geocodes a free-text query (best match). */
+  async geocodeQuery(
+    query: string,
+    options: NominatimSearchOptions = {},
+  ): Promise<NominatimGeocodeResult | null> {
+    const results = await this.searchQuery(query, {
+      ...options,
+      limit: options.limit ?? 1,
+    });
+    return results[0] ?? null;
+  }
+
+  /** Geocodes structured farm location fields (Nigeria-biased). */
   async geocodeFarmAddress(input: {
     city: string;
     region: string;
     country: string;
   }): Promise<NominatimGeocodeResult | null> {
-    const query = [input.city, input.region, input.country].filter(Boolean).join(', ');
-    return this.geocodeQuery(query);
+    const country = input.country?.trim() || 'Nigeria';
+    const query = [input.city, input.region, country].filter(Boolean).join(', ');
+    const countrycodes =
+      country.toLowerCase().includes('nigeria') || country.toLowerCase() === 'ng'
+        ? 'ng'
+        : undefined;
+    return this.geocodeQuery(query, { countrycodes });
   }
 }

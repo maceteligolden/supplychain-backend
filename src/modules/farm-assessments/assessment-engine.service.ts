@@ -14,6 +14,28 @@ import type {
   IFarmLandCoverPointOutput,
 } from './farm-assessment.interface';
 
+const PROVIDER_RETRY_ATTEMPTS = 3;
+
+async function withRetries<T>(
+  operation: () => Promise<T>,
+  attempts = PROVIDER_RETRY_ATTEMPTS,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) {
+        break;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Assessment failed');
+}
+
 /**
  * AssessmentEngineService orchestrates WHISP and GFW analysis for a farm assessment job.
  * WDPA is disabled until a valid Protected Planet token is configured.
@@ -52,20 +74,23 @@ export class AssessmentEngineService {
     }
 
     try {
-      const geoJson = coordinatesToGeoJsonPolygon(boundary.coordinates);
+      const plots = boundary.plots;
+      const geoJson = coordinatesToGeoJsonPolygon(plots);
 
-      const [gfw, whisp] = await Promise.all([
-        this.gfwClient.analyzePolygon({
-          farmId,
-          geoJson,
-          coordinates: boundary.coordinates,
-        }),
-        this.whispClient.analyzePolygon({
-          farmId,
-          geoJson,
-          coordinates: boundary.coordinates,
-        }),
-      ]);
+      const [gfw, whisp] = await withRetries(() =>
+        Promise.all([
+          this.gfwClient.analyzePolygon({
+            farmId,
+            geoJson,
+            coordinates: plots[0] ?? boundary.coordinates,
+          }),
+          this.whispClient.analyzePolygon({
+            farmId,
+            geoJson,
+            coordinates: plots[0] ?? boundary.coordinates,
+          }),
+        ]),
+      );
 
       const deforestationPercent = whisp.lossPercent ?? gfw.deforestationPercent;
       const afforestationPercent =

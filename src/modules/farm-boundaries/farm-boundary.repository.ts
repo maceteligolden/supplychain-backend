@@ -1,16 +1,76 @@
+import { Prisma } from '@prisma/client';
 import { injectable } from 'tsyringe';
 
 import { prismaClient } from '@/shared/database';
-import type { GeoCoordinate } from '@/shared/utils/polygon.util';
+import {
+  normalizeBoundaryPlots,
+  type GeoCoordinate,
+} from '@/shared/utils/polygon.util';
 
 import { IFarmBoundaryRecord } from './farm-boundary.interface';
 
-function parseCoordinates(value: unknown): GeoCoordinate[] {
-  if (!Array.isArray(value)) {
-    return [];
+type StoredBoundaryCoordinates =
+  | GeoCoordinate[]
+  | {
+      plots: GeoCoordinate[][];
+    };
+
+function isCoordinate(value: unknown): value is GeoCoordinate {
+  if (!value || typeof value !== 'object') {
+    return false;
   }
 
-  return value as GeoCoordinate[];
+  const candidate = value as GeoCoordinate;
+  return (
+    typeof candidate.latitude === 'number' && typeof candidate.longitude === 'number'
+  );
+}
+
+function parseStoredCoordinates(value: unknown): {
+  coordinates: GeoCoordinate[];
+  plots: GeoCoordinate[][];
+} {
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Array.isArray((value as { plots?: unknown }).plots)
+  ) {
+    const plots = (value as { plots: unknown[] }).plots
+      .filter((plot): plot is unknown[] => Array.isArray(plot))
+      .map((plot) => plot.filter(isCoordinate));
+    const normalized = normalizeBoundaryPlots([], plots);
+    return {
+      coordinates: normalized[0] ?? [],
+      plots: normalized,
+    };
+  }
+
+  if (Array.isArray(value) && value.length > 0 && Array.isArray(value[0])) {
+    const plots = (value as unknown[])
+      .filter((plot): plot is unknown[] => Array.isArray(plot))
+      .map((plot) => plot.filter(isCoordinate));
+    const normalized = normalizeBoundaryPlots([], plots);
+    return {
+      coordinates: normalized[0] ?? [],
+      plots: normalized,
+    };
+  }
+
+  const coordinates = Array.isArray(value) ? value.filter(isCoordinate) : [];
+  const plots = normalizeBoundaryPlots(coordinates);
+  return {
+    coordinates: plots[0] ?? [],
+    plots,
+  };
+}
+
+function toStoredCoordinates(plots: GeoCoordinate[][]): StoredBoundaryCoordinates {
+  if (plots.length <= 1) {
+    return plots[0] ?? [];
+  }
+
+  return { plots };
 }
 
 /**
@@ -26,39 +86,46 @@ export class FarmBoundaryRepository {
       return null;
     }
 
+    const parsed = parseStoredCoordinates(record.coordinates);
+
     return {
       id: record.id,
       farmId: record.farmId,
-      coordinates: parseCoordinates(record.coordinates),
+      coordinates: parsed.coordinates,
+      plots: parsed.plots,
       areaHectares: record.areaHectares,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
   }
 
-  /** Upserts a farm boundary polygon. */
+  /** Upserts a farm boundary polygon (one or more plots). */
   async upsert(input: {
     farmId: string;
-    coordinates: GeoCoordinate[];
+    plots: GeoCoordinate[][];
     areaHectares: number;
   }): Promise<IFarmBoundaryRecord> {
+    const stored = toStoredCoordinates(input.plots) as Prisma.InputJsonValue;
     const record = await prismaClient.farmBoundary.upsert({
       where: { farmId: input.farmId },
       create: {
         farmId: input.farmId,
-        coordinates: input.coordinates,
+        coordinates: stored,
         areaHectares: input.areaHectares,
       },
       update: {
-        coordinates: input.coordinates,
+        coordinates: stored,
         areaHectares: input.areaHectares,
       },
     });
 
+    const parsed = parseStoredCoordinates(record.coordinates);
+
     return {
       id: record.id,
       farmId: record.farmId,
-      coordinates: parseCoordinates(record.coordinates),
+      coordinates: parsed.coordinates,
+      plots: parsed.plots,
       areaHectares: record.areaHectares,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,

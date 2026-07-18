@@ -41,6 +41,7 @@ import { SupplyChainEventService } from '@/modules/supply-chain-events/supply-ch
 import { SupplyChainController } from '@/modules/supply-chains/supply-chain.controller';
 import { SupplyChainRepository } from '@/modules/supply-chains/supply-chain.repository';
 import { SupplyChainService } from '@/modules/supply-chains/supply-chain.service';
+import { GeocodeController } from '@/modules/geocode';
 import { HealthController } from '@/modules/health/health.controller';
 import { HealthService } from '@/modules/health/health.service';
 import { InventoryCodeRepository } from '@/modules/inventory-codes';
@@ -73,6 +74,7 @@ export const setupDependencyContainer = (): void => {
   container.register(FarmController, { useClass: FarmController });
 
   container.register(NominatimClient, { useClass: NominatimClient });
+  container.register(GeocodeController, { useClass: GeocodeController });
   container.register(GfwClient, { useClass: GfwClient });
   container.register(WhispClient, { useClass: WhispClient });
   container.register(WdpaClient, { useClass: WdpaClient });

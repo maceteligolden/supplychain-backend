@@ -18,6 +18,7 @@ import type { ICommodityOutput, IGetCommoditiesOutput } from '@/modules/commodit
 
 class InMemoryCommodityRepository extends CommodityRepository {
   private store = new Map<string, ICommodityRecord>();
+  private referencedIds = new Set<string>();
 
   override findAll(): Promise<ICommodityRecord[]> {
     return Promise.resolve(
@@ -88,12 +89,21 @@ class InMemoryCommodityRepository extends CommodityRepository {
     return Promise.resolve(updated);
   }
 
+  override isReferencedByFarmsOrBatches(id: string): Promise<boolean> {
+    return Promise.resolve(this.referencedIds.has(id));
+  }
+
   override deleteById(id: string): Promise<boolean> {
     return Promise.resolve(this.store.delete(id));
   }
 
+  markReferenced(id: string): void {
+    this.referencedIds.add(id);
+  }
+
   clear(): void {
     this.store.clear();
+    this.referencedIds.clear();
   }
 }
 
@@ -243,5 +253,29 @@ describe('Commodities API integration', () => {
       `/api/v1/commodities/${created.data.id}`,
     );
     expect(getResponse.status).toBe(404);
+  });
+
+  it('DELETE /api/v1/commodities/:id rejects referenced commodity with 400', async () => {
+    const app = createApp();
+    const createResponse = await request(app).post('/api/v1/commodities').send({
+      name: 'Cocoa',
+      unit: 'KG',
+    });
+    const created = createResponse.body as ISuccessResponseOutput<ICommodityOutput>;
+    inMemoryCommodityRepository.markReferenced(created.data.id);
+
+    const deleteResponse = await request(app).delete(
+      `/api/v1/commodities/${created.data.id}`,
+    );
+    const body = deleteResponse.body as { success: boolean; message: string };
+
+    expect(deleteResponse.status).toBe(400);
+    expect(body.success).toBe(false);
+    expect(body.message).toBe('Cannot delete commodity referenced by farms or batches');
+
+    const getResponse = await request(app).get(
+      `/api/v1/commodities/${created.data.id}`,
+    );
+    expect(getResponse.status).toBe(200);
   });
 });

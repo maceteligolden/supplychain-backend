@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Completes supply chain management for the Traceability Platform POC: full CRUD with allocation sync, lifecycle events, deforestation risk summary (degraded without farm assessments), traceability report export payload, dashboard KPIs/charts, and actor involvement wired to real events.
+Completes supply chain management for the Traceability Platform POC: full CRUD with allocation sync, lifecycle events, deforestation risk summary, traceability report export payload, dashboard KPIs/charts, and actor involvement wired to real events.
 
 ## Backend modules
 
@@ -23,9 +23,16 @@ Completes supply chain management for the Traceability Platform POC: full CRUD w
 
 - Supply chain code uniqueness; delete blocked when allocations exist
 - Allocation sync replaces all chain allocations; quantity capped across chains
-- Events: forward-only sequence, skips allowed, actor must be `ACTIVE`
+- Events: forward-only sequence; API still accepts skips, but the UI records the **immediate next** lifecycle type automatically (no type picker)
 - Event `type` / `occurredAt` immutable after create; `notes` / `actorId` editable
-- Risk/report/dashboard use empty assessment map → `UNASSESSED` / `NO_FARMS` until farm assessment module lands
+- Actor and commodity selectors display **names** (IDs remain in payloads only)
+
+## Frontend UX (current)
+
+- **Create / edit wizard** — commodity select shows the commodity name; allocation step shows live available / good / exceeded feedback against batch max
+- **Allocate more** — detail-page action opens an allocation-focused wizard that preserves existing allocations and syncs via `PUT /:id/allocations`
+- **Chain of custody graph** — fixed node width with wrapped text; column/row spacing uses node size + explicit gaps so boxes do not overlap
+- **Deforestation risk** — chain detail can **run/rerun all linked farms** by calling existing `POST /farms/:id/assessments` per farm, then refreshing `GET /:id/risk-summary`. Farms without boundaries fail individually and remain linked for retry
 
 ## Seed order
 
@@ -39,7 +46,9 @@ All routes proxy when `NEXT_PUBLIC_USE_MOCK_API=false`:
 - `/api/supply-chains/[id]/events/*`
 - `/api/supply-chains/[id]/risk-summary`, `/report`
 - `/api/dashboard/summary` → `/api/v1/dashboard`
+- `/api/farms/[id]/assessments` (used by chain-level run/rerun orchestration)
 
 ## Out of scope
 
-- Farm boundary + assessment backend (needed for real MEDIUM/HIGH risk KPIs)
+- Dedicated chain-level assessment backend endpoint (frontend fans out to per-farm POST)
+- Role-based access beyond authenticated admin session

@@ -1,4 +1,3 @@
-import bbox from '@turf/bbox';
 import { featureCollection } from '@turf/helpers';
 
 import type {
@@ -8,22 +7,30 @@ import type {
   IFarmAssessmentMapTileLayer,
   IFarmAssessmentProviderMetadata,
 } from './farm-assessment.interface';
-import type { GeoCoordinate } from '@/shared/utils/polygon.util';
+import { plotsBoundingBox, type GeoCoordinate } from '@/shared/utils/polygon.util';
 
 const LEGEND_COLORS = {
-  landMass: '#2f6f4f',
   deforestation: '#dc2626',
   afforestation: '#16a34a',
   stability: '#166534',
+  nonForest: '#a8a29e',
 } as const;
 
 const DEFAULT_TILE_LAYERS: IFarmAssessmentMapTileLayer[] = [
+  {
+    id: 'tree_cover_density',
+    label: 'Tree cover density',
+    urlTemplate:
+      'https://tiles.globalforestwatch.org/umd_tree_cover_density_2000/latest/dynamic/{z}/{x}/{y}.png',
+    opacity: 0.7,
+    defaultVisible: true,
+  },
   {
     id: 'tree_cover_loss',
     label: 'Tree cover loss',
     urlTemplate:
       'https://tiles.globalforestwatch.org/umd_tree_cover_loss/latest/dynamic/{z}/{x}/{y}.png?startYear=2021&endYear=2024',
-    opacity: 0.75,
+    opacity: 0.8,
     defaultVisible: true,
   },
   {
@@ -31,24 +38,8 @@ const DEFAULT_TILE_LAYERS: IFarmAssessmentMapTileLayer[] = [
     label: 'Tree cover gain',
     urlTemplate:
       'https://tiles.globalforestwatch.org/umd_tree_cover_gain_from_height/latest/dynamic/{z}/{x}/{y}.png',
-    opacity: 0.65,
-    defaultVisible: true,
-  },
-  {
-    id: 'integrated_alerts',
-    label: 'Integrated alerts',
-    urlTemplate:
-      'https://tiles.globalforestwatch.org/gfw_integrated_alerts/latest/dynamic/{z}/{x}/{y}.png',
     opacity: 0.7,
-    defaultVisible: false,
-  },
-  {
-    id: 'cocoa_risk',
-    label: 'West Africa cocoa risk',
-    urlTemplate:
-      'https://tiles.globalforestwatch.org/gfw_west_africa_cocoa_deforestation_risk/latest/dynamic/{z}/{x}/{y}.png',
-    opacity: 0.55,
-    defaultVisible: false,
+    defaultVisible: true,
   },
 ];
 
@@ -65,16 +56,20 @@ function buildLegend(
     analysis.stabilityPercent ??
       Math.max(0, 100 - analysis.deforestationPercent - analysis.afforestationPercent),
   );
+  const nonForestPercent = Math.max(
+    0,
+    Math.round(
+      (100 -
+        analysis.deforestationPercent -
+        analysis.afforestationPercent -
+        stablePercent) *
+        100,
+    ) / 100,
+  );
 
   return [
     {
-      category: 'Farm land mass',
-      color: LEGEND_COLORS.landMass,
-      percent: 100,
-      hectares: boundaryAreaHectares,
-    },
-    {
-      category: 'Deforestation (loss)',
+      category: 'Tree cover loss',
       color: LEGEND_COLORS.deforestation,
       percent: analysis.deforestationPercent,
       hectares: hectaresFromPercent(
@@ -83,7 +78,7 @@ function buildLegend(
       ),
     },
     {
-      category: 'Afforestation (gain)',
+      category: 'Tree cover gain',
       color: LEGEND_COLORS.afforestation,
       percent: analysis.afforestationPercent,
       hectares: hectaresFromPercent(
@@ -97,31 +92,29 @@ function buildLegend(
       percent: stablePercent,
       hectares: hectaresFromPercent(boundaryAreaHectares, stablePercent),
     },
+    {
+      category: 'Non-forest',
+      color: LEGEND_COLORS.nonForest,
+      percent: nonForestPercent,
+      hectares: hectaresFromPercent(boundaryAreaHectares, nonForestPercent),
+    },
   ];
 }
 
 /** Builds map overlay context for a completed farm assessment. */
 export function buildAssessmentMapContext(input: {
   boundary: GeoCoordinate[];
+  plots?: GeoCoordinate[][];
   boundaryAreaHectares: number;
   analysis: IFarmAssessmentAnalysis;
   providerMetadata: IFarmAssessmentProviderMetadata | null;
 }): IFarmAssessmentMapContext {
-  const polygonFeature: GeoJSON.Feature<GeoJSON.Polygon> = {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        input.boundary.map((coordinate) => [coordinate.longitude, coordinate.latitude]),
-      ],
-    },
-  };
-
-  const bounds = bbox(polygonFeature) as [number, number, number, number];
+  const plots = input.plots && input.plots.length > 0 ? input.plots : [input.boundary];
+  const bounds = plotsBoundingBox(plots);
 
   return {
-    boundary: input.boundary,
+    boundary: plots[0] ?? input.boundary,
+    plots,
     bbox: bounds,
     legend: buildLegend(input.analysis, input.boundaryAreaHectares),
     tileLayers: DEFAULT_TILE_LAYERS,
